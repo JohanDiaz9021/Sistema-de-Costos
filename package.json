@@ -1,0 +1,64 @@
+{
+  "name": "gtc-dashboard-planeacion",
+  "version": "0.1.0",
+  "description": "Dashboard de indicadores de planeación GTC. Solo lectura sobre sistema_monitoreo.",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --experimental-test-coverage --test \"test/unit/*.test.js\"",
+    "lint": "eslint .",
+    "seed": "node sql/02_seed_users.js",
+    "migrar": "node scripts/migrar-todo.js",
+    "migrar:aplicar": "node scripts/migrar-todo.js --aplicar",
+    "set-password": "node scripts/set-password.js",
+    "alertas:email": "node scripts/enviar-alertas-email.js",
+    "alertas:email:previa": "node scripts/enviar-alertas-email.js --previsualizar",
+    "test:unit": "node --experimental-test-coverage --test \"test/unit/*.test.js\"",
+    "test:integration": "node test/helpers/verificar-base.js && node --test --test-concurrency=1 \"test/integration/*.test.js\"",
+    "test:e2e": "node test/helpers/verificar-base.js && node --test --test-concurrency=1 \"test/e2e/*.test.js\"",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "db:test:up": "docker compose -f docker-compose.test.yml up -d",
+    "db:test:down": "docker compose -f docker-compose.test.yml down -v"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "_comentario_overrides": [
+    "qs: express 4 lo fija en 6.15.3, que sigue afectado por GHSA-x5fp-wj9c-mxmx",
+    "y GHSA-4mjr-xmp4-gh2g (dos DoS al parsear query strings — camino de entrada",
+    "de CUALQUIER peticion, asi que si es alcanzable). 6.16.0 los corrige y es",
+    "compatible con express 4; la alternativa era subir a express 5, que es",
+    "breaking. Se quita este override el dia que express 4 traiga qs >= 6.16.",
+    "",
+    "NO se toca exceljs -> uuid (GHSA-w5hq-g745-h8pq, 'missing buffer bounds",
+    "check en v3/v5/v6 cuando se pasa buf'): exceljs usa UNICAMENTE uuid.v4()",
+    "sin argumentos, en un solo punto (lib/xlsx/xform/sheet/cf-ext/",
+    "cf-rule-ext-xform.js), asi que el fallo no es alcanzable desde aqui. El",
+    "unico arreglo que ofrece npm es bajar a exceljs 3.4 — un salto mayor que",
+    "romperia la exportacion a Excel de verdad, a cambio de cerrar una",
+    "vulnerabilidad que este proyecto no puede ejecutar."
+  ],
+  "overrides": {
+    "qs": "^6.16.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.0.0",
+    "mysql2": "^3.11.3",
+    "nodemailer": "^10.0.8",
+    "pdfkit": "^0.19.1",
+    "session-file-store": "^1.5.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "jsdom": "^30.0.1",
+    "playwright": "^1.62.1"
+  }
+}

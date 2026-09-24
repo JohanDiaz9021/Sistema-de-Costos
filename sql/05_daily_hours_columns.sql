@@ -1,0 +1,34 @@
+-- ============================================================
+--  Bloque 9 — Horas diarias de mp_task_facts
+-- ------------------------------------------------------------
+--  ⚠️ DESISTIDO / RETIRADO — DECISIÓN 2.1.4 (módulo de Costeo)
+--
+--  HISTORIA:
+--  Este bloque se escribió para crear las columnas h_mon..h_sat
+--  (Lun a Sáb) y dar granularidad diaria a mp_task_facts.
+--
+--  REALIDAD EN PRODUCCIÓN (verificado en el esquema real):
+--  Estas columnas NUNCA se adoptaron: no existen en mp_task_facts.
+--  El parser vigente (WF1, v17) escribe `hours_monday..hours_saturday`,
+--  que son las columnas que usa indicator-16.js (heatmap diario) y
+--  sobre las que se apoyará el motor de Costeo (Fase 2.2).
+--
+--  DECISIÓN CONFIRMADA:
+--  - NO se crean las columnas h_mon..h_sat: quedarían muertas, sin
+--    datos, y con riesgo de que un parser/servicio futuro escriba en
+--    la columna equivocada.
+--  - `hours_monday..hours_saturday` es la ÚNICA fuente de horas diarias.
+--  - Cualquier parser futuro de horas diarias DEBE escribir hours_*.
+--
+--  Este archivo se conserva únicamente como registro de decisión y
+--  es un no-op intencional: no ejecuta DDL.
+-- ============================================================
+
+-- DDL ORIGINAL (desistido — NO aplicar):
+-- ALTER TABLE mp_task_facts
+--   ADD COLUMN IF NOT EXISTS h_mon DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER total_executed_hours,
+--   ADD COLUMN IF NOT EXISTS h_tue DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER h_mon,
+--   ADD COLUMN IF NOT EXISTS h_wed DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER h_tue,
+--   ADD COLUMN IF NOT EXISTS h_thu DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER h_wed,
+--   ADD COLUMN IF NOT EXISTS h_fri DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER h_thu,
+--   ADD COLUMN IF NOT EXISTS h_sat DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER h_fri;

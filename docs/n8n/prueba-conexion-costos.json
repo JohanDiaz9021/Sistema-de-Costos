@@ -1,0 +1,32 @@
+{
+  "name": "Prueba conexión Costos",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6f1b2c10-0000-4000-8000-000000000001",
+      "name": "Iniciar prueba",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) AS centros FROM mp_centro_costo;",
+        "options": {}
+      },
+      "id": "6f1b2c10-0000-4000-8000-000000000002",
+      "name": "Contar centros de costo",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [280, 0]
+    }
+  ],
+  "connections": {
+    "Iniciar prueba": {
+      "main": [[{ "node": "Contar centros de costo", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

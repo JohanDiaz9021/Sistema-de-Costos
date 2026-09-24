@@ -1,0 +1,2403 @@
+/* ===== Layout de Costeo (sidebar + contenido) =====
+   Reutiliza las variables de :root definidas en styles.css
+   (--c-navy, --c-teal, --c-yellow, --c-red, etc).
+   Usa --sidebar-width para que el grid se adapte cuando se colapsa/expande. */
+
+:root {
+  --sidebar-width: 240px;
+}
+
+.cst-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+  transition: grid-template-columns 200ms ease-out;
+}
+
+/* ===== Sidebar ===== */
+.cst-sidebar {
+  background: var(--c-navy);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.cst-sidebar.is-collapsed { width: 64px; }
+
+.cst-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 6px 16px;
+}
+/* El icono del sidebar era la letra "G" sobre un cuadro azul — se reemplaza
+   por el diamante del logo real (9 sep 2026, a pedido explícito). No hay un
+   archivo recortado solo con el diamante, así que se recorta por CSS del
+   mismo /img/logo_gtc.png que ya usa el header (176x181, ver .brand-logo en
+   costeo.css/styles.css): el diamante ocupa el rectángulo (58,10)-(149,100)
+   de esa imagen (medido a mano, píxel a píxel) — el resto es el texto "GTC
+   CORPORATION", que a 34px sería ilegible. background-size/position calculan
+   ese recorte ampliado hasta cubrir el cuadro entero (mismo criterio que
+   object-fit: cover). Si el logo cambia de archivo, hay que volver a medir
+   estos cuatro números.*/
+.cst-brand-icon {
+  width: 34px; height: 34px; border-radius: 8px; flex: none;
+  background: #fff;
+  background-image: url('/img/logo_gtc.png');
+  background-repeat: no-repeat;
+  background-size: 82px 68px;
+  background-position: -22px -4px;
+}
+.cst-brand-text { line-height: 1.2; overflow: hidden; }
+.cst-brand-text strong { display: block; font-size: 15px; letter-spacing: .3px; }
+/* Lleva el nombre de quien inicio sesion (lo pone applyBrandUser en
+   sidebar.js). text-transform en vez de escribirlo en mayusculas: el nombre
+   viene de la base tal como se registro y asi conserva su forma real para un
+   lector de pantalla. nowrap + ellipsis porque un nombre largo no cabe en los
+   240px del sidebar y, sin esto, se partia en dos lineas y empujaba el
+   layout. */
+.cst-brand-text span {
+  display: block; font-size: 10px; color: rgba(255,255,255,.6); letter-spacing: .4px;
+  text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.cst-collapse-btn {
+  width: 100%; margin-bottom: 14px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.75); border-radius: 8px;
+  padding: 7px; cursor: pointer; font-size: 13px;
+  transition: background .15s ease;
+}
+.cst-collapse-btn:hover { background: rgba(255,255,255,.12); }
+
+
+.cst-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.cst-nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  color: rgba(255,255,255,.75);
+  font-size: 13.5px; cursor: pointer; border: none; background: transparent;
+  text-align: left; width: 100%; text-decoration: none;
+  position: relative;
+  transition: background .15s ease, color .15s ease;
+}
+/* En index.html estos items son <a href>, en costeo.html son <button> —
+   los <a> traen subrayado por defecto del navegador y los <button> no,
+   así que sin esto el sidebar se veía distinto entre Planeación y Costeo. */
+.cst-nav-item svg { flex: none; width: 17px; height: 17px; }
+/* Oculto por defecto (reserva el espacio, no colapsa el layout) hasta que
+   sidebar.js resuelve el rol via /api/auth/me y decide si mostrarlo — evita
+   que un PM vea el menú de CEO/admin parpadear un instante en cada
+   navegación entre páginas. */
+.cst-nav-item[data-ceo-only] { visibility: hidden; }
+.cst-nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+/* Indicador activo: franja teal a la izquierda (::before, no border, para
+   no desplazar el padding del texto) además del fondo — dos señales en vez
+   de una sola hacen más fácil ubicar en qué pantalla se está de un vistazo,
+   sobre todo con el sidebar colapsado a solo íconos. */
+/* Deep 400, no el principal: la barra lateral entera ES el azul principal
+   (#25007A) desde que pasa a mandar en todas las superficies, asi que el
+   item activo pintado de ese mismo color desaparecia contra su propio fondo
+   y solo quedaba la franja teal. Un paso mas claro de la MISMA familia se
+   ve como "encendido" sin meter otro color. */
+.cst-nav-item.is-active {
+  background: var(--deep-400); color: #fff; font-weight: 600;
+}
+.cst-nav-item.is-active::before {
+  content: ''; position: absolute; left: -12px; top: 6px; bottom: 6px; width: 3px;
+  background: var(--c-teal); border-radius: 0 3px 3px 0;
+}
+.cst-nav-badge {
+  margin-left: auto; background: var(--c-red); color: #fff;
+  font-size: 11px; font-weight: 700; border-radius: 999px;
+  padding: 1px 7px; line-height: 1.5;
+}
+
+.cst-sidebar-footer {
+  border-top: 1px solid rgba(255,255,255,.12);
+  padding-top: 10px; margin-top: 10px;
+}
+.cst-sidebar-footer .cst-nav-item { color: rgba(255,255,255,.6); }
+
+/* Cuando el sidebar esta colapsado, ocultamos texto y dejamos solo iconos */
+.cst-sidebar.is-collapsed .cst-brand-text,
+.cst-sidebar.is-collapsed .cst-nav-item span,
+.cst-sidebar.is-collapsed .cst-nav-badge { display: none; }
+.cst-sidebar.is-collapsed .cst-nav-item { justify-content: center; }
+
+/* ===== "Ayuda visible": apagar los textos explicativos =====
+   El botón del menú lateral (#cst-help-btn) existía sin ningún código
+   detrás — hacer clic no hacía nada. Ahora enciende/apaga los textos que
+   explican cada pantalla, que para un PM que ya conoce el sistema son
+   ruido en TODAS las pantallas, todos los días.
+
+   Se listan por clase, una por una, en vez de esconder "todo lo que
+   parezca texto": los avisos que SÍ tienen que estar siempre a la vista
+   quedan deliberadamente fuera de esta lista — hoy queda solo el de filtro
+   activo recortando los números (.cst-filtro-aviso, que su propio
+   comentario marca como no ocultable). El de gasto Pendiente
+   (.cst-gasto-aviso) salió el 11 sep 2026 junto con los textos de ayuda de
+   Costo No Planeado, Catálogo de Cargos y Accesos, todos a pedido
+   explícito. */
+/* .cst-banner p salió de esta lista el 10 sep 2026: los banners de todos
+   los paneles se eliminaron, así que ya no hay nada que ocultar ahí. */
+body.is-ayuda-oculta .cst-legend-bar,
+body.is-ayuda-oculta .cst-module-desc,
+body.is-ayuda-oculta .cst-cc-legend,
+body.is-ayuda-oculta .cst-cfg-group-desc,
+body.is-ayuda-oculta .cst-cfg-desc,
+body.is-ayuda-oculta .cst-formula-ej,
+body.is-ayuda-oculta .cst-ayuda { display: none; }
+
+/* ===== Contenido principal ===== */
+.cst-main { background: var(--c-grey-bg); min-height: 100vh; }
+
+/* Loader contextual — reemplaza al overlay de página completa. Cada panel
+   (Indicadores, Alertas, Centro de Costos, Comercial, cada sub-pestaña de
+   Equipo y Gastos) arranca con este bloque como contenido inicial de su
+   propio contenedor, con el texto de qué se está cargando específicamente.
+   El render real (renderAlertasGrid, renderCentrosGrid, etc.) lo reemplaza
+   con innerHTML apenas llegan los datos — no hace falta ninguna lógica para
+   quitarlo. Así, cada panel deja de mostrar "cargando" en el momento en que
+   SU propia petición termina, no cuando termina todo el portafolio. */
+.cst-loader {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; padding: 56px 20px; text-align: center;
+  animation: cst-loader-in 220ms ease-out;
+  /* Cuando el loader vive dentro de un contenedor CSS grid (Indicadores,
+     Alertas, Centro de Costos), ocupa el ancho completo en vez de quedar
+     apretado en la primera columna. No afecta a los que están en flex/bloque. */
+  grid-column: 1 / -1; width: 100%;
+}
+.cst-loader-spinner {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  border: 3px solid var(--c-grey-bg);
+  border-top-color: var(--c-teal); border-right-color: var(--c-blue-mid);
+  animation: cst-spin 0.75s cubic-bezier(.55, .1, .45, .9) infinite;
+}
+.cst-loader p {
+  margin: 0; font-size: 13.5px; font-weight: 600; color: var(--c-ink); letter-spacing: .01em;
+}
+/* Fila que envuelve el loader dentro de una <table> (colspan dinámico por
+   tabla) — sin borde/padding propio para que no se vea una raya suelta. */
+tr.cst-loader-row td { border: none; padding: 0; }
+
+@keyframes cst-spin { to { transform: rotate(360deg); } }
+@keyframes cst-loader-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cst-loader-spinner { animation: none; border-top-color: var(--c-blue-mid); }
+  .cst-loader { animation: none; }
+}
+
+.cst-header {
+  background: var(--c-navy); border-bottom: 1px solid rgba(0,0,0,.2);
+  /* Mismo alto que la .topbar de Planeación (styles.css): 10px 18px, con
+     todo centrado en una sola línea. Antes era 14px 24px con
+     align-items: flex-start, que tenía sentido cuando a la izquierda iba
+     un bloque de tres líneas (breadcrumb + título + conteo); ahora que
+     solo queda el logo, el alto lo marca él (36px) igual que allá. */
+  padding: 10px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+  color: #fff;
+  /* Se queda fijo arriba al bajar la página (9 sep 2026, a pedido explícito):
+     el scroll ocurre a nivel de documento (.cst-main no tiene su propio
+     overflow), igual que .cst-sidebar, que ya usa el mismo truco para
+     quedarse pegado. Sin esto, el encabezado con los KPIs (presupuesto,
+     ejecutado, alertas) desaparecía apenas se bajaba a ver la lista de
+     proyectos, justo la info que se necesita tener a la vista todo el
+     tiempo. El z-index lo deja por encima del contenido normal, pero
+     debajo de los modales (1000) y el toast (1200). */
+  position: sticky; top: 0; z-index: 5;
+}
+/* Logo real de GTC (mismo .brand-logo de Planeación, ver styles.css) —
+   vive en cst-header, que queda FUERA de <main class="cst-content"> donde
+   se muestran/ocultan los paneles (Indicadores, Alertas, Centro de
+   Costos, Comercial, Equipo y Gastos con sus sub-pestañas como Costo No
+   Planeado). Al estar en el header, aparece igual en todos ellos sin tener
+   que repetirlo panel por panel.
+   Desde el 10 sep 2026 el logo va solo: el breadcrumb, el título y el
+   conteo de centros se quitaron a pedido explícito. */
+.cst-header-left { display: flex; align-items: center; gap: 14px; }
+
+/* Selector de proyecto dentro del encabezado. Anula el .filter de
+   styles.css, que apila la etiqueta sobre el <select> (column + min-width
+   140px): apilado mide ~48px y volvería a engordar el encabezado que
+   acabamos de dejar en 56px. En horizontal cabe en la misma línea que el
+   logo, con el mismo lenguaje visual de las pastillas de KPI. */
+.cst-header-filter {
+  flex-direction: row; align-items: center; gap: 8px; min-width: 0;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px; padding: 3px 10px;
+}
+.cst-header-filter > span {
+  font-size: 9px; letter-spacing: .5px; font-weight: 600;
+  color: rgba(255,255,255,.55); text-transform: uppercase;
+}
+.cst-header-filter > select {
+  background: transparent; color: #fff; border: 0;
+  min-width: 0; max-width: 220px;
+  font-size: 13px; font-weight: 600; padding: 2px 2px;
+  cursor: pointer;
+}
+/* La lista desplegada la pinta el sistema operativo, no hereda el fondo
+   oscuro del encabezado: sin esto queda texto blanco sobre blanco. */
+.cst-header-filter > select option { color: var(--c-text); background: #fff; }
+
+.cst-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Etiqueta y valor en UNA línea, no apilados: apilarlos era lo que hacía
+   alto el encabezado (dos renglones + su separación llegaban a ~52px de
+   pastilla). En horizontal cada una mide ~27px, así que el que manda pasa
+   a ser el logo y el encabezado queda tan delgado como el de Planeación.
+   Sin min-width porque ahora el ancho lo da el contenido. */
+.cst-kpi-pill {
+  background: rgba(255,255,255,.06); color: #fff;
+  border: 1px solid rgba(255,255,255,.1); border-left: 3px solid var(--c-teal);
+  border-radius: 8px; padding: 4px 12px;
+  display: flex; align-items: baseline; gap: 8px; white-space: nowrap;
+  transition: background .15s ease, transform .15s ease;
+}
+.cst-kpi-pill:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+.cst-kpi-pill.is-danger { background: rgba(122,26,26,.55); border-color: rgba(255,90,90,.3); border-left-color: var(--c-red); }
+.cst-kpi-pill .cst-kpi-label {
+  font-size: 9px; letter-spacing: .5px;
+  color: rgba(255,255,255,.55); text-transform: uppercase; margin: 0; font-weight: 600;
+}
+.cst-kpi-pill.is-danger .cst-kpi-label { color: rgba(255,190,190,.85); }
+.cst-kpi-pill .cst-kpi-value { font-size: 14px; font-weight: 700; }
+
+/* Botones de "+ crear algo" del encabezado. Eran amarillos con texto oscuro;
+   el 11 sep 2026, a pedido explicito, pasan todos al contorno blanco sobre la
+   banda azul — el mismo estilo que ya tenia "+ Agregar persona nueva". Los
+   cinco viven sobre una banda oscura (el encabezado fijo o un
+   .cst-module-head), asi que el texto blanco siempre tiene fondo donde
+   apoyarse; si alguna vez hace falta uno sobre fondo claro, NO sirve esta
+   clase tal cual. */
+.cst-btn-new {
+  background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.55);
+  border-radius: 8px; padding: 10px 16px; font-weight: 700; font-size: 13px;
+  cursor: pointer; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, transform .05s ease, box-shadow .15s ease;
+}
+.cst-btn-new:hover { background: rgba(255,255,255,.12); border-color: #fff; }
+.cst-btn-new:active { transform: translateY(1px); box-shadow: none; }
+
+/* Equipo del Proyecto: dos botones con función propia en el encabezado
+   ("+ Agregar persona a un proyecto" / "+ Agregar persona nueva") en vez de
+   uno solo con un interruptor escondido adentro del modal. Ya NO se
+   distinguen entre si: .cst-btn-new-secundario existia para dar al segundo
+   un contorno en vez del relleno amarillo, y desde que ese contorno es el
+   estilo de todos (ver .cst-btn-new, arriba) la clase no aportaba nada. */
+.cst-module-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Los botones de la banda van SIEMPRE pegados al borde derecho (11 sep 2026,
+   a pedido explicito), como ya lo hacian los de Indicadores y el de Horas
+   Extra: pegados al titulo se leian como parte de la frase, y cada modulo los
+   dejaba a una distancia distinta segun lo largo que fuera su titulo.
+   Cubre los dos casos que hay en el HTML: el contenedor cuando el modulo
+   tiene varios botones (Equipo del Proyecto) y el boton suelto cuando es uno
+   solo (Accesos, Costo No Planeado, Horas Extra). */
+.cst-module-head-actions,
+.cst-module-head > .cst-btn-new { margin-left: auto; }
+
+
+/* ===== Filtros ===== */
+.cst-filters {
+  display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+  padding: 14px 24px;
+  background: #fff; border-bottom: 1px solid var(--c-border);
+}
+/* .cst-filters[hidden] necesita el !important porque la regla de arriba
+   fija display:flex, que le gana al display:none del atributo hidden. */
+.cst-filters[hidden] { display: none !important; }
+
+/* ===== Iconos (SVG, ver ICONOS en costeo-core.js) =====
+   Reemplazan a los emojis que habia repartidos por toda la interfaz (11 sep
+   2026). Se dimensionan en `em`, asi que cada uno toma el tamano de la letra
+   del elemento que lo contiene y no hay que fijar pixeles caso por caso; el
+   trazo va en currentColor, asi que tambien heredan el color — en la banda
+   azul salen blancos y en una pestana, del color del texto. */
+.cst-ico {
+  display: inline-flex;
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  vertical-align: -0.2em;
+}
+.cst-ico svg { width: 100%; height: 100%; display: block; }
+/* El de la banda de encabezado vive dentro de un cuadro de 36px: ahi manda el
+   cuadro, no el tamano de la letra. */
+.cst-module-icon .cst-ico { width: 19px; height: 19px; vertical-align: 0; }
+.cst-cfg-group-icon .cst-ico { width: 17px; height: 17px; vertical-align: 0; }
+.cst-cfg-icon .cst-ico { width: 15px; height: 15px; vertical-align: 0; }
+
+/* ===== Paginacion (20 filas por pagina, ver paginar() en costeo-core.js) =====
+   Los controles los crea el JS justo debajo de cada tabla o grilla, y se
+   esconden solos cuando todo cabe en una pagina. */
+.cst-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 12.5px;
+}
+.cst-paginacion-info { color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.cst-paginacion .btn-ghost:disabled { opacity: .45; cursor: default; }
+
+/* ===== Contenido scrolleable ===== */
+.cst-content { padding: 20px 24px 48px; display: flex; flex-direction: column; gap: 16px; }
+
+.cst-tabs {
+  display: inline-flex; gap: 4px; background: var(--tint-navy);
+  border-radius: 10px; padding: 4px; width: fit-content;
+}
+
+/* Barra de pestañas global (11 sep 2026): las 4 pantallas propias mas las 7
+   sub-pestañas de Equipo y Gastos, visible en todas. Son 11 botones, bastante
+   mas que las 7 de antes: se deja envolver en dos filas en pantallas
+   estrechas en vez de desbordar a lo ancho (.cst-tabs es inline-flex sin
+   wrap, pensada para grupos de 3 o 4). */
+.cst-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: auto;
+  max-width: 100%;
+  /* Tarjeta propia, no la franja gris de .cst-tabs (11 sep 2026): con 11
+     botones ocupando el ancho completo, el gris claro sobre el gris de la
+     pagina no se leia como un control, se leia como fondo. En blanco, con
+     borde y una sombra corta, la barra queda al mismo nivel visual que las
+     tarjetas de contenido que hay debajo. */
+  gap: 6px;
+  background: var(--c-card-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 7px 8px;
+  box-shadow: var(--shadow-sm);
+}
+.cst-tabbar .cst-tab { border-radius: 9px; }
+.cst-tabbar .cst-tab:hover { background: var(--tint-navy); }
+/* La pestana activa de ESTA barra no puede ser blanca sobre blanco (asi es
+   .cst-tab.is-active en las barras grises): se marca con el azul principal
+   rebajado y un contorno del mismo azul, dejando la letra en negro. */
+.cst-tabbar .cst-tab.is-active {
+  background: var(--tint-deep);
+  box-shadow: inset 0 0 0 1.5px var(--c-navy);
+}
+
+
+/* Indicadores: las tres vistas (Catálogo / Comparativo / Gráficos) y el
+   filtro de Periodo comparten fila (11 sep 2026). El filtro se alinea por
+   abajo con las pestañas — .filter apila su etiqueta encima del select, así
+   que sin flex-end el select quedaría mas alto que la barra de pestañas. En
+   pantallas estrechas el filtro baja a su propia linea en vez de apretar las
+   pestañas. */
+.cst-ind-tabsrow {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.cst-ind-tabsrow .filter { min-width: 150px; }
+/* Accesos y Configuracion (data-ceo-only) arrancan invisibles hasta que
+   applyEgRoleView() sabe el rol — mismo motivo y mismo truco que los botones
+   del menu lateral (.cst-nav-item[data-ceo-only], mas arriba): con `hidden`
+   a secas, un PM los veia un instante en cada carga. */
+.cst-tabbar .cst-tab[data-ceo-only] { visibility: hidden; }
+.cst-tab {
+  padding: 8px 16px; border: none; background: transparent; cursor: pointer;
+  font-size: 13px; color: var(--c-muted); border-radius: 8px;
+  display: flex; align-items: center; gap: 6px; font-weight: 500;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.cst-tab:hover { color: var(--c-ink); }
+/* La pestana activa se distingue por el fondo blanco, la negrita y la
+   sombra — la letra va en negro como el resto (a pedido explicito). */
+.cst-tab.is-active {
+  color: var(--c-ink); font-weight: 700; background: #fff;
+  box-shadow: 0 1px 3px rgba(12, 17, 59,.15);
+}
+
+.cst-legend-bar {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 8px;
+  padding: 12px 16px; font-size: 12.5px; color: var(--c-muted);
+  display: flex; flex-wrap: wrap; gap: 6px 24px;
+}
+.cst-legend-bar strong { color: var(--c-text); }
+
+/* ===== Tarjetas resumen (4 arriba) ===== */
+.cst-summary-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+}
+@media (max-width: 1000px) { .cst-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; } }
+/* Fila de resumen de Indicadores: quedó en 2 tarjetas ("Horas extra
+   pendientes de aprobar" y "Trabajo no remunerado" se retiraron el 4 sep
+   2026, ver renderSummary en costeo-indicadores.js) — 2 columnas anchas en
+   vez de 4 angostas con la mitad vacía. */
+#cst-indicadores-summary { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1000px) { #cst-indicadores-summary { grid-template-columns: 1fr; } }
+.cst-summary-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: var(--radius-lg);
+  padding: 24px 28px; box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.cst-summary-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.cst-summary-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--c-muted); font-weight: 700; margin: 0 0 12px;
+}
+.cst-summary-value { font-size: 32px; font-weight: 700; color: var(--c-ink); }
+/* Presupuesto ausente o incompleto: el % (o texto) sale en el mismo naranja
+   que .estado-riesgo en el resto de la app, para que se lea como "dato a
+   medias" y no como un porcentaje normal de ejecución. */
+.cst-summary-value.is-warning { color: #8a6400; font-size: 22px; }
+.cst-summary-sub { font-size: 12.5px; color: var(--c-muted); margin-top: 8px; }
+
+/* Una sola tarjeta desde el 4 sep 2026 (se quitó "NOTIFICACIONES AL ADMIN",
+   que contaba un tipo de alerta que ya no se genera). Con repeat(3, 1fr)
+   heredado quedaba ocupando un tercio del ancho, como si faltaran dos. */
+
+.cst-sev-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none;
+}
+.cst-sev-dot.sev-critica { background: var(--c-red); }
+.cst-sev-dot.sev-alta { background: var(--c-yellow); }
+.cst-sev-dot.sev-media { background: var(--c-blue-mid); }
+.cst-sev-dot.sev-baja { background: var(--c-muted); }
+#cst-alertas-filtros .cst-tab { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ===== Seccion de indicadores ===== */
+.cst-section-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.cst-section-head h3 { font-size: 17px; color: var(--c-ink); margin: 0; }
+.cst-section-head p { font-size: 12.5px; color: var(--c-muted); margin: 4px 0 0; max-width: 720px; }
+.cst-live-pill {
+  font-size: 11px; color: var(--lime-900); background: var(--tint-lime); border: 1px solid var(--lime-300);
+  border-radius: 999px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px;
+}
+.cst-live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime-900); }
+
+.btn-export {
+  font-size: 13.5px; font-weight: 700; color: #fff; border: none;
+  border-radius: 8px; padding: 11px 20px; cursor: pointer; white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
+}
+.btn-export:hover:not(:disabled) { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.btn-export:active:not(:disabled) { transform: translateY(0); }
+.btn-export:disabled { opacity: .6; cursor: default; }
+
+.btn-export-pdf { background: var(--c-navy); }
+.btn-export-pdf:hover:not(:disabled) { background: var(--deep-700); }
+/* Dentro de la cabecera de Indicadores el fondo YA es navy, así que el
+   botón navy desaparecía (mismo caso que .cst-btn-new sobre la banda
+   amarilla, más arriba). Se pasa a un blanco translúcido con borde, el
+   mismo recurso que usa .cst-module-icon sobre esa banda. */
+.cst-module-head .btn-export-pdf {
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.32);
+}
+.cst-module-head .btn-export-pdf:hover:not(:disabled) { background: rgba(255,255,255,.28); }
+
+.btn-export-xlsx { background: var(--c-teal-btn); }
+.btn-export-xlsx:hover:not(:disabled) { background: var(--c-teal-btn-hover); }
+
+.btn-export-snapshot { background: var(--c-blue-mid); }
+.btn-export-snapshot:hover:not(:disabled) { background: var(--deep-700); }
+
+.cst-snapshot-list { display: flex; flex-direction: column; gap: 10px; }
+.cst-snapshot-empty { color: var(--c-muted); font-size: 13px; padding: 4px 0 12px; }
+
+.cst-snapshot-card {
+  background: #fff; border-left: 4px solid var(--c-blue-mid); border: 1px solid var(--c-border); border-left: 4px solid var(--c-blue-mid);
+  border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.cst-snapshot-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.cst-snapshot-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cst-snapshot-date { font-weight: 700; color: var(--c-ink); font-size: 14px; margin-bottom: 4px; }
+.cst-snapshot-meta { color: var(--c-muted); font-size: 12px; margin: 0; }
+
+.cst-snapshot-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cst-snapshot-compare-btn {
+  font-size: 12px; font-weight: 600; color: var(--c-blue-mid); background: #fff;
+  border: 1px solid var(--c-blue-mid); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+.cst-snapshot-compare-btn:hover { background: var(--tint-deep); }
+
+.cst-snapshot-delete-btn {
+  font-size: 12px; font-weight: 600; color: var(--c-red); background: #fff;
+  border: 1px solid var(--c-red); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+}
+.cst-snapshot-delete-btn:hover { background: #fff5f5; }
+
+.cst-snapshot-checkbox { display: flex; align-items: center; }
+.cst-snapshot-checkbox input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--c-blue-mid); }
+
+/* Barra de selección múltiple (8 sep 2026): mismo tono que .cst-filtro-aviso
+   (fondo suave, sin competir con las tarjetas de snapshot de abajo). Solo
+   se muestra con al menos un snapshot marcado — ver renderSnapshotBulkbar. */
+.cst-snapshot-bulkbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--tint-deep); border: 1px solid var(--c-blue-mid); border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 12px;
+}
+.cst-snapshot-select-all { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--c-ink); cursor: pointer; }
+.cst-snapshot-select-all input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--c-blue-mid); }
+.cst-snapshot-bulk-count { font-size: 12.5px; color: var(--c-muted); }
+.cst-snapshot-bulk-delete {
+  margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--c-red); background: #fff;
+  border: 1px solid var(--c-red); border-radius: 8px; padding: 6px 14px; cursor: pointer;
+}
+.cst-snapshot-bulk-delete:hover { background: #fff5f5; }
+
+/* ===== Modal de confirmación (reemplaza confirm() nativo) ===== */
+/* ===== Notificaciones flotantes (cstToast) — reemplaza alert() nativo =====
+   Se apilan de abajo hacia arriba en la esquina inferior derecha; cada una
+   entra deslizándose y se va sola a los 5s (o al pasarle el mouse, se
+   pausa). Mismos verdes/rojos que ya usa el resto del sistema. */
+.cst-toast-container {
+  position: fixed; bottom: 20px; right: 20px; z-index: 1200;
+  display: flex; flex-direction: column-reverse; gap: 10px;
+  max-width: 360px; pointer-events: none;
+}
+.cst-toast {
+  pointer-events: auto;
+  background: #fff; border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; line-height: 1.5; color: var(--c-text);
+  box-shadow: 0 8px 24px rgba(12, 17, 59, .2); border-left: 4px solid var(--c-teal);
+  animation: cst-toast-entra .25s ease-out;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.cst-toast.is-saliendo { opacity: 0; transform: translateX(12px); }
+.cst-toast-ok { border-left-color: var(--lime-900); }
+.cst-toast-error { border-left-color: var(--c-red); }
+/* La carga SÍ se hizo, pero hay algo que revisar (ej. filas del Excel que
+   no llegan a ningún centro de costos) — ni verde ni rojo. */
+.cst-toast-warn { border-left-color: #8a6400; }
+@keyframes cst-toast-entra {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.cst-confirm-overlay {
+  position: fixed; inset: 0; background: rgba(12, 17, 59, .45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+}
+.cst-confirm-box {
+  background: #fff; border-radius: 12px; padding: 22px 24px;
+  max-width: 420px; width: 100%; box-shadow: 0 12px 32px rgba(12, 17, 59, .25);
+}
+.cst-confirm-message { margin: 0 0 14px; color: var(--c-text); font-size: 13.5px; line-height: 1.5; }
+.cst-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.cst-confirm-cancel {
+  font-size: 12px; font-weight: 600; color: var(--c-text); background: #fff;
+  border: 1px solid var(--c-border); border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+.cst-confirm-cancel:hover { background: var(--c-grey-bg); }
+.cst-confirm-accept {
+  font-size: 12px; font-weight: 700; color: #fff; background: var(--c-red);
+  border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer;
+}
+.cst-confirm-accept:hover { background: #c62828; }
+/* Confirmación de una acción que NO destruye nada (aprobar un gasto): mismo
+   verde que .btn-approve en las tablas, para que el botón del modal se vea
+   como el botón que se acaba de pulsar y no como un borrado. Relleno y no
+   contorno, igual que el "Eliminar" del otro modal: dentro del modal ya se
+   esta confirmando, y el peso del relleno es parte del freno. */
+.cst-confirm-accept.is-ok { background: var(--lime-900); }
+.cst-confirm-accept.is-ok:hover { background: var(--lime-800); }
+
+/* ===== Modales de alta ("+ Agregar…") — un solo patrón para toda la app =====
+   Reusa .cst-confirm-overlay (mismo fondo oscuro que el confirm() nativo) y
+   le pone encima una caja con encabezado, botón de cierre y el formulario.
+   Lo usan Centro de Costos, Equipo del Proyecto, Gastos no planeados, Horas
+   Extra y Accesos: antes cada uno se abría a su manera (ver initModales en
+   costeo-core.js). */
+.cst-modal-box {
+  background: #fff; border-radius: 12px; padding: 20px 22px;
+  width: 100%; max-width: 520px; text-align: left;
+  box-shadow: 0 12px 32px rgba(12, 17, 59, .25);
+  max-height: 88vh; overflow-y: auto;
+}
+.cst-modal-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 4px;
+}
+.cst-modal-head h4 { margin: 0; font-size: 15.5px; color: var(--c-ink); }
+.cst-modal-close {
+  border: none; background: none; font-size: 24px; line-height: 1; cursor: pointer;
+  color: var(--c-muted); padding: 0 4px; flex-shrink: 0;
+}
+.cst-modal-close:hover { color: var(--c-text); }
+.cst-modal-hint {
+  font-size: 12px; color: var(--c-muted); line-height: 1.5; margin: 0 0 16px;
+}
+/* Una sola columna: en una caja de ~500px el auto-fit de .cst-acceso-form
+   partiría los campos en dos columnas apretadas. */
+.cst-modal-box .cst-cc-edit-form.cst-acceso-form,
+.cst-modal-box .emp-form { grid-template-columns: 1fr; display: grid; gap: 14px; }
+/* El botón de enviar deja de ocupar todo el ancho (eso venía del formulario
+   fijo arriba de la tabla): en un modal va junto a "Cancelar", a la derecha.
+   Los selectores repiten .cst-cc-edit-form.cst-acceso-form a propósito: sin
+   eso la regla de más arriba (justify-content: stretch, width: 100%) le gana
+   por especificidad y el botón se sigue estirando. */
+.cst-modal-box .cst-cc-edit-form.cst-acceso-form .cst-cc-edit-actions,
+.cst-modal-box .emp-form .emp-form-actions {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px;
+}
+.cst-modal-box .cst-cc-edit-form.cst-acceso-form .cst-cc-edit-actions .btn-primary,
+.cst-modal-box .emp-form .emp-form-actions .btn-primary {
+  width: auto; padding: 9px 18px;
+}
+
+/* ===== Modal de campo con textarea/select (reemplaza prompt() nativo) =====
+   El nombre quedó de cuando también lo usaba la decisión de horas extra
+   (31 ago 2026: se quitó esa decisión); hoy solo lo usa el rechazo de un
+   gasto no planeado, más abajo en costeo.html. */
+.cst-overtime-decision-box { max-width: 440px; }
+.cst-overtime-decision-field {
+  display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;
+  font-size: 11.5px; color: var(--c-muted);
+}
+.cst-overtime-decision-field textarea,
+.cst-overtime-decision-field select {
+  border: 1px solid var(--c-border); border-radius: 6px; padding: 7px 9px;
+  font-size: 13px; font-family: inherit; color: var(--c-ink); background: var(--c-grey-bg);
+}
+.cst-overtime-decision-field textarea { min-height: 64px; resize: vertical; }
+
+/* ===== Alta manual de hora extra: "Turno trabajado" (inicio -> fin) =====
+   Un solo bloque con fecha + hora (00..23) + minutos por punto y una flecha
+   entre ellos, en vez de los dos datetime-local. El picker nativo del
+   datetime-local solo desplegaba horas 1..12 aunque el valor fuera de 24 h
+   (17 sep 2026, a pedido explícito), y para turnos nocturnos (p. ej.
+   18:00 -> 02:00) es imposible elegir 13..23 con ese spinner. Con los
+   selects ya se ve "de un vistazo" que es UN turno y sigue sin haber que
+   adivinar a qué día pertenece el fin si cruza medianoche. */
+.cst-overtime-turno-field { grid-column: 1 / -1; }
+.cst-overtime-turno-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--c-muted); display: block; margin-bottom: 5px;
+}
+.cst-overtime-turno {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(57, 212, 204,.10) 0%, rgba(37, 0, 122,.07) 100%);
+  border: 1px solid rgba(57, 212, 204,.35);
+  border-radius: 10px;
+  padding: 12px;
+}
+.cst-overtime-turno-punto {
+  display: flex; flex-direction: column; gap: 3px; flex: 1 1 180px; min-width: 0;
+}
+.cst-overtime-turno-punto span {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--c-ink);
+}
+.cst-overtime-turno-punto input,
+.cst-overtime-turno-punto select {
+  border: 1px solid var(--c-border); border-radius: 8px; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; color: var(--c-ink);
+  background: #fff;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.cst-overtime-turno-punto input:focus,
+.cst-overtime-turno-punto select:focus {
+  outline: none; border-color: var(--c-teal); box-shadow: 0 0 0 3px rgba(57, 212, 204,.18);
+}
+.cst-overtime-turno-punto > input[type="date"] { width: 100%; }
+.cst-overtime-turno-hhmm { display: flex; gap: 6px; margin-top: 1px; }
+.cst-overtime-turno-hhmm select { flex: 1 1 0; min-width: 0; }
+.cst-overtime-turno-arrow {
+  flex: none; align-self: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--c-teal-btn); color: #fff;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 700;
+  /* Empuja la flecha a la altura de los inputs, no de sus etiquetas de arriba. */
+  margin-top: 15px;
+}
+.cst-overtime-turno-hint {
+  display: block; margin-top: 8px; font-size: 11px; color: var(--c-muted); font-weight: 400;
+}
+.cst-overtime-turno-hint strong {
+  display: block; font-size: 12.5px; font-weight: 700; color: var(--c-ink); margin-bottom: 2px;
+}
+.cst-overtime-turno-hint strong.is-listo { color: var(--lime-900); }
+.cst-overtime-turno-hint strong.is-error { color: var(--c-red); }
+
+/* Mini-historial de la sesión dentro del modal de alta (17 sep 2026, a
+   pedido explícito): al registrar varias horas extra seguidas el modal no
+   se cierra y acá se ve lo que va quedando, con su Eliminar para corregir
+   un error sin salir. Vive mientras la página no se recargue. */
+.cst-overtime-sesion {
+  margin-top: 14px;
+  border: 1px solid rgba(57, 212, 204, .35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(57, 212, 204, .10) 0%, rgba(37, 0, 122, .07) 100%);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.cst-overtime-sesion-title {
+  margin: 0 0 6px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .4px; text-transform: uppercase; color: var(--c-muted);
+}
+.cst-overtime-sesion-list { list-style: none; margin: 0; padding: 0; }
+.cst-overtime-sesion-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 2px; border-bottom: 1px solid var(--c-border); font-size: 12px;
+}
+.cst-overtime-sesion-item:last-child { border-bottom: none; }
+.cst-overtime-sesion-detalle { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cst-overtime-sesion-detalle strong {
+  font-weight: 700; color: var(--c-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cst-overtime-sesion-turno {
+  font-size: 11px; color: var(--c-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cst-overtime-sesion-horas { flex: none; font-weight: 700; color: var(--c-ink); }
+.cst-overtime-sesion-badge {
+  flex: none; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  border-radius: 999px; padding: 2px 8px;
+  background: rgba(76, 175, 80, .15); color: var(--lime-900);
+}
+.cst-overtime-sesion-del { flex: none; }
+
+.cst-snapshot-compare-table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 12.5px; }
+.cst-snapshot-compare-table th, .cst-snapshot-compare-table td { padding: 8px 10px; border-bottom: 1px solid var(--c-border); text-align: left; }
+.cst-snapshot-compare-table th { color: var(--c-text); font-weight: 700; background: var(--tint-navy-soft); border-bottom: 2px solid var(--c-border); }
+.cst-snapshot-compare-table td:nth-child(2) { color: #666; background: var(--tint-deep-soft); }
+.cst-snapshot-compare-table td:nth-child(3) { color: var(--c-text); font-weight: 600; }
+.cst-snapshot-compare-table td:last-child, .cst-snapshot-compare-table th:last-child { text-align: right; }
+.cst-snapshot-compare-table tbody tr:hover { background: var(--tint-navy-soft); }
+
+.cst-indicators-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+}
+@media (max-width: 1100px) { .cst-indicators-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .cst-indicators-grid { grid-template-columns: 1fr; } }
+
+.cst-ind-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 12px;
+  border-left: 4px solid var(--c-border);
+  padding: 14px 16px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 6px;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.cst-ind-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.cst-ind-card.status-ok { border-left-color: var(--c-teal); }
+.cst-ind-card.status-risk { border-left-color: var(--c-red); }
+.cst-ind-card.status-pending { border-left-color: var(--c-border); opacity: .7; }
+
+.cst-ind-head { display: flex; align-items: flex-start; gap: 6px; }
+.cst-ind-head h4 { font-size: 13.5px; color: var(--c-text); margin: 0; line-height: 1.3; }
+.cst-ind-num { font-size: 11px; color: var(--c-muted); font-weight: 700; margin-left: auto; flex: none; }
+
+/* Botón "?" de ayuda por indicador — hover/focus muestra una explicación
+   corta de para qué sirve, sin depender de title (nativo, sin estilo, se
+   demora en aparecer). position:relative en el propio botón, no en la
+   tarjeta, para que el tooltip no quede recortado por el grid. */
+.cst-ind-help {
+  position: relative; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--c-grey-bg); color: var(--c-muted);
+  font-size: 10.5px; font-weight: 700; line-height: 1; text-align: center;
+  cursor: help; user-select: none;
+  border: 1px solid var(--c-border);
+  vertical-align: middle; margin-left: 4px;
+}
+.cst-ind-help:hover, .cst-ind-help:focus-visible {
+  background: var(--c-blue-mid); color: #fff; border-color: var(--c-blue-mid);
+  outline: none;
+}
+.cst-ind-tooltip {
+  position: absolute; z-index: 20; top: 22px; left: 0;
+  width: 220px; max-width: 60vw;
+  background: var(--c-navy); color: #fff;
+  font-size: 11.5px; font-weight: 400; line-height: 1.4; text-align: left;
+  /* En las tarjetas de resumen el globo vive dentro de .cst-summary-label,
+     que es uppercase + letter-spacing: sin este reset la explicación salía
+     TODA EN MAYÚSCULAS y espaciada (en el catálogo no pasa porque ahí el
+     contenedor es un <h4> normal). */
+  text-transform: none; letter-spacing: normal;
+  padding: 8px 10px; border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(12, 17, 59,.25);
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms;
+  pointer-events: none;
+}
+.cst-ind-help:hover .cst-ind-tooltip,
+.cst-ind-help:focus-visible .cst-ind-tooltip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+/* La ÚLTIMA columna abre el globo hacia la izquierda (right:0 en vez de
+   left:0). Con left:0 los 220px del tooltip se salían por el borde derecho
+   de la ventana y el texto quedaba cortado — medido a 1440px: 77-144px
+   fuera de pantalla en el catálogo, 23px en "Trabajo no remunerado".
+   El ancla sigue siendo el botón "?" (no la tarjeta) para que la posición
+   vertical siga siendo correcta aunque el título ocupe dos líneas.
+
+   Este mismo tooltip vive en DOS grillas distintas, y cada una tiene sus
+   propios cortes — por eso hay dos juegos de reglas y no uno solo:
+     .cst-indicators-grid  4 col · 2 col ≤1100px · 1 col ≤640px
+     .cst-summary-grid     4 col · 2 col ≤1000px
+   Si alguna vez cambia el número de columnas de cualquiera de las dos,
+   hay que cambiarlo aquí también. */
+.cst-indicators-grid > .cst-ind-card:nth-child(4n) .cst-ind-tooltip { left: auto; right: 0; }
+@media (max-width: 1100px) {
+  .cst-indicators-grid > .cst-ind-card:nth-child(4n) .cst-ind-tooltip { left: 0; right: auto; }
+  .cst-indicators-grid > .cst-ind-card:nth-child(2n) .cst-ind-tooltip { left: auto; right: 0; }
+}
+@media (max-width: 640px) {
+  /* Una sola columna: TODAS las tarjetas son "la última", así que todas
+     abren hacia la izquierda. El sidebar no colapsa (240px fijos), así que
+     aquí el contenido es angosto y con left:0 el globo se salía siempre.
+     El :nth-child(n) no filtra nada — está para igualar la especificidad
+     del :nth-child(4n) de arriba, que si no le gana a esta regla. */
+  .cst-indicators-grid > .cst-ind-card:nth-child(n) .cst-ind-tooltip { left: auto; right: 0; }
+}
+
+/* Tarjetas resumen de arriba ("Trabajo no remunerado (empresa)" es la 4ª). */
+.cst-summary-grid > .cst-summary-card:nth-child(4n) .cst-ind-tooltip { left: auto; right: 0; }
+@media (max-width: 1000px) {
+  .cst-summary-grid > .cst-summary-card:nth-child(4n) .cst-ind-tooltip { left: 0; right: auto; }
+  .cst-summary-grid > .cst-summary-card:nth-child(2n) .cst-ind-tooltip { left: auto; right: 0; }
+}
+
+/* Fila de resumen de Indicadores: quedó en 2 columnas (ver
+   #cst-indicadores-summary arriba) — la última tarjeta ya no cae en
+   nth-child(4n), así que su tooltip se abría hacia la derecha y se salía de
+   la pantalla. :last-child sigue siendo correcto tanto con 2 como con 3
+   tarjetas, no hace falta tocarlo si el conteo vuelve a cambiar. */
+#cst-indicadores-summary.cst-summary-grid > .cst-summary-card:last-child .cst-ind-tooltip { left: auto; right: 0; }
+@media (max-width: 1000px) {
+  /* Baja a 1 columna (ver la regla de #cst-indicadores-summary arriba):
+     todas las tarjetas quedan angostas, así que todos los tooltips abren
+     hacia la izquierda, igual que hace .cst-indicators-grid a 640px. */
+  #cst-indicadores-summary.cst-summary-grid > .cst-summary-card:nth-child(n) .cst-ind-tooltip { left: auto; right: 0; }
+}
+@media (max-width: 640px) {
+  /* Esta grilla NO baja a 1 columna (a diferencia de .cst-indicators-grid),
+     así que aquí las 2 columnas quedan muy angostas y también se desbordaba
+     la columna izquierda. Todas abren hacia la izquierda. El :nth-child(n)
+     no filtra nada — iguala la especificidad del :nth-child(4n) de arriba. */
+  .cst-summary-grid > .cst-summary-card:nth-child(n) .cst-ind-tooltip { left: auto; right: 0; }
+}
+
+.cst-ind-desc { font-size: 11.5px; color: var(--c-muted); margin: 0; }
+.cst-ind-value { font-size: 24px; font-weight: 700; color: var(--c-ink); }
+.cst-ind-value.is-pending { font-size: 15px; color: var(--c-muted); font-weight: 500; font-style: italic; }
+.cst-ind-ref { font-size: 11.5px; color: var(--c-muted); }
+.cst-ind-formula {
+  font-size: 11.5px; color: var(--c-blue-mid); background: none; border: none;
+  padding: 0; cursor: pointer; text-align: left;
+}
+.cst-ind-formula:hover { text-decoration: underline; }
+
+/* ===== Pestañas de contenido (panels) ===== */
+.cst-panel[hidden] { display: none; }
+#cst-panel-comercial { display: flex; flex-direction: column; gap: 22px; }
+
+/* ===== Alertas ===== */
+.cst-alertas-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px;
+}
+@media (max-width: 900px) { .cst-alertas-grid { grid-template-columns: 1fr; } }
+
+.cst-alert-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 12px;
+  border-left: 4px solid var(--c-border);
+  padding: 12px 14px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 4px;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.cst-alert-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.cst-alert-card.sev-critica { border-left-color: var(--c-red); }
+.cst-alert-card.sev-alta { border-left-color: var(--c-yellow); }
+.cst-alert-card.sev-media { border-left-color: var(--c-blue-mid); }
+.cst-alert-card.sev-baja { border-left-color: var(--c-border); }
+
+.cst-alert-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cst-alert-head h4 { font-size: 13.5px; margin: 0; color: var(--c-text); }
+.cst-alert-sev {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 20px; color: #fff;
+}
+.cst-alert-sev.sev-critica { background: var(--c-red); }
+.cst-alert-sev.sev-alta { background: var(--c-yellow); }
+.cst-alert-sev.sev-media { background: var(--c-blue-mid); }
+.cst-alert-sev.sev-baja { background: var(--c-muted); }
+
+.cst-alert-cat { font-size: 11px; color: var(--c-muted); font-weight: 600; text-transform: uppercase; }
+.cst-alert-detalle { font-size: 12.5px; color: var(--c-text); margin: 2px 0; }
+.cst-alert-proyecto { font-size: 11.5px; color: var(--c-ink); }
+
+/* Alertas sin corregir (10 sep 2026): ademas de su propia pestaña, se
+   resaltan dentro de la lista completa, que es donde el usuario las
+   encuentra sin buscarlas.
+   El cuadro va DEBAJO de la pastilla de severidad (align-self: flex-end,
+   que en esta tarjeta en columna alinea a la derecha) para que se lea como
+   un segundo dato de la misma esquina, no como otra etiqueta al margen. */
+.cst-alert-dias {
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  color: #fff; background: var(--c-red); border-radius: 6px;
+  padding: 3px 9px; align-self: flex-end;
+}
+/* El borde izquierdo ya lo pinta la severidad; el fondo tenue es lo que
+   hace que la fila salte a la vista al recorrer la lista. */
+.cst-alert-card.is-sin-corregir { background: #fff7f7; }
+/* La nota va sobre las dos columnas de la grilla, para que se lea como
+   aviso y no como una tarjeta más. */
+.cst-alertas-nota { grid-column: 1 / -1; margin: 0; font-size: 12.5px; }
+/* Contador en la pestaña: sin él, saber si hay algo sin corregir exigiría
+   entrar a mirar. */
+.cst-tab-count {
+  font-size: 11px; font-weight: 700; line-height: 1;
+  color: #fff; background: var(--c-red); border-radius: 999px; padding: 3px 7px;
+}
+
+
+/* .btn-approve es la única mitad "positiva" que le falta a .btn-danger para
+   completar el mismo lenguaje de color en todas las tablas de Costeo. Antes
+   existía también .btn-reject (mismo rojo, pero con un hover ligeramente
+   distinto al de .btn-danger) — se eliminó y todo lo que decía "Rechazar"
+   ahora usa .btn-danger, para que Eliminar (Costo No Planeado) y Rechazar
+   (Alertas, Horas Extra) sean exactamente el mismo botón, no dos rojos
+   parecidos. */
+/* Mismo boton que .btn-danger pero en verde (11 sep 2026, a pedido
+   explicito): contorno sobre blanco, no relleno. Verde de la familia Light
+   Lime (800), no el teal de antes — "aprobar" se lee verde, y el teal de
+   Aqua es color de acento, no de estado. Padding compensado igual que en
+   .btn-danger para que los dos midan lo mismo en la misma fila. */
+.btn-approve {
+  background: #fff; color: var(--lime-800); border: 1.5px solid var(--lime-800);
+  padding: 5.5px 12.5px;
+  border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background .15s ease, transform .05s ease, box-shadow .15s ease;
+}
+.btn-approve:hover { background: var(--tint-lime); box-shadow: var(--shadow-sm); }
+.btn-approve:active { transform: translateY(1px); box-shadow: none; }
+
+/* ===== Centro de Costos: banner de sincronización + grid de tarjetas ===== */
+/* "Proyectos registrados" y su leyenda viven FUERA de la tarjeta blanca del
+   panel (son hijos directos de #cst-panel-centro-costos, sobre el fondo
+   gris), así que no los alcanza el gap de .cst-module-body: sin margen
+   propio quedaban pegados al borde inferior de la tarjeta de KPIs y a las
+   tarjetas de proyecto de abajo (11 sep 2026, a pedido explícito).
+   La leyenda se deja cerca de SU título (8px) y lejos de la grilla (20px):
+   explica lo que viene, no es un bloque suelto entre los dos. */
+#cst-panel-centro-costos > .cst-section-head { margin-top: 26px; }
+
+.cst-cc-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  font-size: 11.5px; color: var(--c-muted); margin: 8px 0 20px;
+}
+
+.cst-cc-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+}
+@media (max-width: 1300px) { .cst-cc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 780px) { .cst-cc-grid { grid-template-columns: 1fr; } }
+
+.cst-cc-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: var(--radius-lg);
+  border-top: 3px solid var(--c-border);
+  padding: 16px 18px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 8px;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.cst-cc-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.cst-cc-card.st-vigente,
+.cst-cc-card.st-por_vencer { border-top-color: var(--c-blue-mid); }
+.cst-cc-card.st-vencido { border-top-color: var(--c-red); }
+.cst-cc-card.st-cerrado { border-top-color: var(--c-teal); }
+.cst-cc-card.st-inactivo { border-top-color: var(--c-border); opacity: .75; }
+
+.cst-cc-meta { font-size: 11px; color: var(--c-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+.cst-cc-title { font-size: 17px; font-weight: 700; color: var(--c-ink); margin: 0; }
+.cst-cc-sub { font-size: 12px; color: var(--c-muted); margin: 0; }
+
+.cst-cc-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.cst-cc-badge {
+  font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 20px;
+  border: 1px solid var(--c-border); color: var(--c-text);
+}
+.cst-cc-badge.b-sync { background: var(--tint-deep); color: var(--c-blue-mid); border-color: transparent; }
+.cst-cc-badge.b-manual { background: #FFF3CD; color: var(--c-yellow); border-color: transparent; }
+.cst-cc-badge.b-activo { background: var(--lime-100); color: var(--c-lime-ink); border-color: transparent; }
+.cst-cc-badge.b-inactivo { background: var(--c-grey-bg); color: var(--c-muted); border-color: transparent; }
+.cst-cc-badge.b-riesgo { background: #FFF3CD; color: var(--c-yellow); border-color: transparent; }
+.cst-cc-badge.b-vencido { background: #FCE8E8; color: var(--c-red); border-color: transparent; }
+
+.cst-cc-exec-head { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--c-muted); }
+.cst-cc-exec-head strong { color: var(--c-text); }
+.cst-cc-exec-bar { height: 7px; border-radius: 20px; background: var(--tint-navy); overflow: hidden; }
+.cst-cc-exec-fill {
+  height: 100%; background: linear-gradient(90deg, var(--c-blue-light) 0%, var(--c-blue-mid) 100%);
+  border-radius: 20px; transition: width .4s ease;
+}
+.cst-cc-exec-fill.is-over { background: linear-gradient(90deg, #f28b7f 0%, var(--c-red) 100%); }
+
+.cst-cc-numbers { display: flex; justify-content: space-between; font-size: 12.5px; }
+.cst-cc-numbers .lbl { color: var(--c-muted); }
+.cst-cc-numbers .val { font-weight: 700; color: var(--c-ink); }
+
+.cst-cc-dates { font-size: 11.5px; color: var(--c-muted); }
+
+.cst-cc-actions { display: flex; justify-content: flex-end; gap: 8px; }
+/* "Ver cambios" va a la izquierda y el resto (Eliminar/Editar) a la derecha:
+   es una acción de lectura, no de escritura, y separarlas evita darle a
+   Eliminar cuando se quería mirar el historial. */
+.cst-cc-btn-cambios { margin-right: auto; }
+.cst-cc-btn-cambios:disabled { opacity: .5; cursor: default; }
+
+/* ===== Historial de cambios de un proyecto (ventana) ===== */
+.cst-cambios-box { max-width: 720px; width: 100%; }
+.cst-cambios-body { padding: 4px 22px 22px; max-height: 65vh; overflow-y: auto; }
+.cst-cambios-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.cst-cambio { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--c-border); }
+.cst-cambio:last-child { border-bottom: none; }
+.cst-cambio-icono { font-size: 16px; line-height: 1.4; flex: none; }
+.cst-cambio-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.cst-cambio-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cst-cambio-tipo { font-size: 12px; font-weight: 700; color: var(--c-ink); }
+.cst-cambio-fecha { font-size: 11.5px; color: var(--c-muted); margin-left: auto; }
+.cst-cambio-texto { margin: 0; font-size: 12.5px; color: var(--c-ink); }
+
+/* El antes y el después como dos cajas separadas, no como una frase: es lo
+   que se pidió poder leer de un vistazo ("decía 10 millones, ahora dice
+   100"). Rojo apagado el valor viejo, verde el nuevo — los mismos colores
+   que ya usa .cst-estado-pill en el resto del sistema. */
+.cst-cambio-diff { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.cst-cambio-campo { font-weight: 700; color: var(--c-muted); }
+.cst-cambio-antes {
+  padding: 3px 9px; border-radius: 6px; background: #fbdada; color: var(--c-red);
+  text-decoration: line-through; text-decoration-color: rgba(0,0,0,.25);
+}
+.cst-cambio-flecha { color: var(--c-muted); font-weight: 700; }
+.cst-cambio-despues { padding: 3px 9px; border-radius: 6px; background: var(--lime-100); color: var(--lime-900); font-weight: 700; }
+
+.cst-cc-edit-form { display: flex; flex-direction: column; gap: 8px; }
+.cst-cc-edit-form label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--c-muted); }
+.cst-cc-edit-form input, .cst-cc-edit-form select {
+  border: 1px solid var(--c-border); border-radius: 6px; padding: 6px 8px; font-size: 12.5px;
+}
+.cst-cc-edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.cst-field-hint { font-size: 10.5px; color: var(--c-muted); font-weight: 400; }
+
+/* ===== Multi-selección con chips (crearMultiselect en costeo.js) =====
+   Reemplaza a los <select multiple> nativos donde hay que elegir varios
+   proyectos — nadie adivina que hay que sostener Ctrl en un select normal. */
+.cst-multiselect { position: relative; }
+.cst-multiselect-box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  min-height: 34px; padding: 5px 8px; cursor: text;
+  /* Mismo fondo gris que el resto de inputs del formulario (Nombre, Usuario,
+     Correo...) — con blanco se veía como un elemento aparte, no parte del
+     mismo formulario. */
+  background: var(--c-grey-bg); border: 1px solid var(--c-border); border-radius: 8px;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.cst-multiselect-box:focus-within {
+  background: #fff; border-color: var(--c-teal); box-shadow: 0 0 0 3px rgba(57, 212, 204, .14);
+}
+.cst-multiselect-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cst-multiselect-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--aqua-100); color: var(--c-teal-ink); font-size: 12px; font-weight: 700;
+  border-radius: 999px; padding: 3px 6px 3px 11px; white-space: nowrap;
+  animation: cst-chip-in 140ms ease-out;
+}
+.cst-multiselect-chip button {
+  border: none; background: rgba(31, 117, 112, .12); color: inherit;
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+  font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  padding: 0; flex: none;
+}
+.cst-multiselect-chip button:hover { background: rgba(61, 133, 94, .24); }
+/* Especificidad extra (.cst-multiselect-box) a propósito: la regla general
+   ".cst-cc-edit-form input" (0,1,1) le ganaría a un solo ".cst-multiselect-input"
+   (0,1,0) y le devolvería el borde/padding que se está reseteando acá. */
+.cst-multiselect-box .cst-multiselect-input {
+  flex: 1 1 90px; min-width: 90px; border: none; outline: none;
+  font-size: 12.5px; padding: 4px 2px; background: transparent; color: var(--c-ink);
+}
+.cst-multiselect-dropdown {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30;
+  background: #fff; border: 1px solid var(--c-border); border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(12, 17, 59, .14));
+  max-height: 220px; overflow-y: auto; padding: 6px;
+}
+.cst-multiselect-option {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  border: none; background: transparent; text-align: left; cursor: pointer;
+  padding: 8px 9px; border-radius: 6px; font-size: 12.5px; color: var(--c-ink);
+}
+.cst-multiselect-option:hover { background: var(--c-grey-bg); }
+.cst-multiselect-option.is-selected { background: var(--aqua-100); color: var(--c-teal-ink); font-weight: 700; }
+.cst-multiselect-check {
+  width: 14px; flex: none; font-size: 11px; color: var(--c-teal-ink); opacity: 0;
+}
+.cst-multiselect-option.is-selected .cst-multiselect-check { opacity: 1; }
+.cst-multiselect-empty { margin: 0; padding: 10px; font-size: 12px; color: var(--c-muted); text-align: center; }
+@keyframes cst-chip-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cst-multiselect-chip { animation: none; }
+}
+
+/* ===== Equipo y Gastos: sub-pestañas + módulo de Accesos ===== */
+.cst-subpanel[hidden] { display: none; }
+.cst-subpanel { margin-top: 16px; }
+
+.cst-module-card {
+  background: #fff; border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: var(--shadow-md); border: 1px solid var(--c-border);
+}
+/* Variante para los paneles completos (Indicadores, Alertas, Costo
+   Planeado, Comercial), que desde el 10 sep 2026 llevan su contenido dentro
+   de una tarjeta igual que las sub-pestañas de Equipo y Gastos.
+   Sin overflow:hidden a propósito: esos paneles tienen globos de ayuda
+   absolutos (.cst-ind-tooltip, z-index 20) que el recorte cortaría contra
+   el borde de la tarjeta. El redondeo de arriba, que normalmente sale de
+   ese recorte, lo pone la cabecera por su cuenta. */
+.cst-module-card-panel { overflow: visible; }
+.cst-module-card-panel > .cst-module-head {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+/* 11 sep 2026, a pedido explícito: todo el módulo se veía apretado. El
+   cuerpo de cada tarjeta de panel es quien reparte el aire entre sus bloques
+   (barra de pestañas, leyenda, tarjetas resumen, títulos de sección, grillas),
+   así que subir su gap y su padding acá los despega a todos de una vez, sin
+   tocar el espaciado interno de cada uno. */
+.cst-module-body { padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 22px; }
+
+/* Un título de sección que no es el primero abre un bloque nuevo debajo de
+   otro que ya terminó (p.ej. "Histórico de snapshots" justo bajo la grilla de
+   indicadores): sin este respiro extra, el título se leía como parte de las
+   tarjetas de arriba en vez de como el comienzo de otra cosa. */
+.cst-module-body > .cst-section-head:not(:first-child) { margin-top: 10px; }
+
+.cst-module-head {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, var(--c-navy) 0%, var(--deep-800) 100%);
+  color: #fff; padding: 18px 22px;
+}
+/* 11 sep 2026, a pedido explícito: TODOS los encabezados llevan la misma
+   banda del azul principal (la de .cst-module-head, arriba). Desaparecen las
+   variantes que los pintaban distinto — la azul mas clara de Costo Planeado,
+   Comercial, Equipo del Proyecto y Catálogo de Cargos; la amarilla de "Dinero
+   fuera de plan", con su texto y su botón oscuros; y el degradado teal del
+   Simulador — junto con las clases que las aplicaban en el HTML.
+   La única que se conserva es .cst-module-head-red (Alertas), que se queda
+   como estaba. */
+.cst-module-card + .cst-module-card { margin-top: 16px; }
+.cst-module-icon {
+  width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,.12); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 15px; flex: none;
+}
+.cst-module-eyebrow { font-size: 11px; color: rgba(255,255,255,.6); font-weight: 700; text-transform: uppercase; }
+.cst-module-head h3 { margin: 2px 0 0; font-size: 17px; color: #fff; }
+.cst-module-desc { font-size: 12.5px; color: var(--c-muted); margin: 0; }
+
+/* Grid en vez de flex-wrap: con flex, filas de distinta altura (el campo
+   "Centro(s) de Costos" es más alto por el texto de ayuda) quedaban
+   desalineadas entre sí — cada fila del grid se alinea arriba sin
+   importar cuánto mida el contenido de al lado. */
+.cst-cc-edit-form.cst-acceso-form {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  align-items: start; gap: 16px 18px;
+}
+.cst-cc-edit-form.cst-acceso-form label { min-width: 0; }
+/* El campo de proyectos necesita más ancho para el buscador + chips que
+   los campos de texto de al lado — ocupa la fila completa aparte. */
+.cst-cc-edit-form.cst-acceso-form .cst-acceso-centro-field { grid-column: 1 / -1; }
+.cst-cc-edit-form.cst-acceso-form .cst-cc-edit-actions { grid-column: 1 / -1; justify-content: stretch; margin-top: 4px; }
+/* Azul principal, no teal (11 sep 2026, a pedido explicito): era el ultimo
+   "Guardar" del modulo que se salia del color del proyecto. El ancho completo
+   y el padding grande se quedan — eso es la forma del formulario de Accesos,
+   no su color. */
+.cst-cc-edit-form.cst-acceso-form .cst-cc-edit-actions .btn-primary {
+  width: 100%; background: var(--c-navy); padding: 11px; font-size: 13.5px; font-weight: 700;
+  border-radius: 8px;
+}
+.cst-cc-edit-form.cst-acceso-form .cst-cc-edit-actions .btn-primary:hover { background: var(--deep-700); }
+
+/* Toggle "+ Persona nueva" (Equipo del Proyecto) — cualquier PM puede dar de
+   alta un talento directo desde el alta de equipo (ver POST
+   /equipo/nueva-persona). El botón vive junto al select de Talento, no
+   dentro de un label, para no heredar su tipografía de etiqueta. */
+.cst-equipo-talento-field {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.cst-equipo-talento-field label { flex: 1; min-width: 0; }
+.cst-equipo-toggle-nueva {
+  /* Ya no vive al lado del select de Talento (eso era cuando un solo botón
+     hacía las dos funciones) — ahora es el "escape hatch" del modal que
+     abrió en "existente" y en realidad hacía falta "nueva". justify-self
+     evita que un <button> dentro del grid de 1 columna se estire de pared a
+     pared como cualquier otro campo. */
+  justify-self: start;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--c-teal-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cst-equipo-toggle-nueva:hover { color: var(--aqua-800); text-decoration: underline; }
+
+/* Mismo lenguaje visual que el formulario "+ Nuevo cargo" (Tarifas por
+   Cargo): tarjeta con acento teal para marcar que es un alta, no un campo
+   más del formulario. Ocupa la fila completa del grid. */
+.cst-equipo-nueva-persona {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  /* Azul principal rebajado, no teal (11 sep 2026, a pedido explicito):
+     esta tarjeta de alta es parte de la interfaz, no un acento decorativo. */
+  background: linear-gradient(135deg, rgba(37, 0, 122, .07) 0%, rgba(37, 0, 122, .03) 100%);
+  border: 1px solid rgba(37, 0, 122, .28);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.cst-equipo-nueva-persona label { flex: 1; min-width: 180px; }
+.cst-equipo-nueva-activo {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  flex: 0 0 auto !important;
+}
+.cst-equipo-nueva-activo input[type="checkbox"] { width: 16px; height: 16px; }
+.cst-equipo-cancelar-nueva {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  color: var(--c-muted);
+  cursor: pointer;
+}
+.cst-equipo-cancelar-nueva:hover { background: var(--tint-navy); }
+
+/* Filtro de la tabla de Equipo del Proyecto — separado del formulario de
+   alta de arriba (ver comentario en costeo.html): elegir aquí un Centro de
+   Costos filtra la tabla, pero NO cambia a dónde se agrega la persona
+   nueva del formulario de "Agregar al equipo" / "+ Persona nueva". */
+.cst-equipo-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0 12px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--c-border);
+}
+
+/* En Horas Extra la barra de filtro es lo PRIMERO del cuerpo de la tarjeta
+   (no viene después de un formulario de alta, como en Equipo del Proyecto),
+   así que la línea punteada de separación no separa de nada: quedaba una
+   raya suelta pegada al borde superior. */
+.cst-equipo-filtros.is-primero {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.cst-cc-edit-form label span {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--c-muted);
+}
+.cst-cc-edit-form input, .cst-cc-edit-form select {
+  background: var(--c-grey-bg);
+}
+.cst-cc-edit-form input[readonly] { background: var(--tint-navy); color: var(--c-muted); cursor: not-allowed; }
+
+/* ===== Plan de Recursos (sql/27) — presupuesto calculado, no escrito a
+   mano, dentro del formulario de edición de Centro de Costos. ===== */
+.cst-plan-toggle {
+  display: flex !important; flex-direction: row !important; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--c-text); cursor: pointer;
+}
+.cst-plan-toggle input { width: auto; background: none; }
+.cst-plan-recursos-body {
+  background: linear-gradient(135deg, rgba(57, 212, 204,.08) 0%, rgba(37, 0, 122,.05) 100%);
+  border: 1px dashed var(--c-teal);
+  border-radius: 8px; padding: 10px 12px; margin: -4px 0 4px;
+}
+.cst-plan-table { width: 100%; font-size: 12px; margin-bottom: 8px; }
+.cst-plan-table th { font-size: 10px; text-transform: uppercase; color: var(--c-muted); text-align: left; padding-bottom: 4px; }
+.cst-plan-table td { padding: 3px 4px 3px 0; vertical-align: middle; }
+.cst-plan-table input, .cst-plan-table select {
+  width: 100%; font-size: 12px; padding: 4px 6px; border: 1px solid var(--c-border); border-radius: 6px;
+  background: #fff; color: var(--c-ink);
+}
+.cst-plan-subtotal { font-weight: 700; color: var(--c-ink); white-space: nowrap; }
+/* Celda "Salario mensual" de una fila "por Persona" sin salario conocido
+   todavía (2 sep 2026) — el input queda igual que cualquier otro de esta
+   tabla, solo se le agrega el hint de abajo con la vista previa del
+   costo/hora que va a calcular el servidor. */
+.cst-plan-salario-celda { min-width: 130px; }
+.cst-plan-salario-hint { display: block; margin-top: 2px; font-size: 10px; color: var(--c-muted); white-space: nowrap; }
+.cst-plan-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.cst-plan-total { font-size: 12.5px; color: var(--c-text); }
+.cst-plan-total strong { color: var(--c-ink); }
+.cst-plan-hint { margin: 6px 0 0; font-size: 10.5px; }
+/* Línea final "equipo + gastos" (sql/29): separada de los dos subtotales
+   de arriba con una regla, para que se lea como la suma de ambos y no
+   como un tercer subtotal más. */
+.cst-plan-footer-total { border-top: 1px dashed var(--c-border); padding-top: 10px; margin-top: 4px; }
+.cst-plan-footer-total .cst-plan-total { font-size: 13.5px; font-weight: 600; }
+
+/* ===== Carga manual del Excel de horas, dentro de la edición del centro ===== */
+.cst-cc-excel-upload {
+  background: var(--c-grey-bg); border: 1px dashed var(--c-border);
+  border-radius: 8px; padding: 10px 12px; margin: 4px 0;
+}
+.cst-cc-excel-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.cst-cc-excel-form label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; color: var(--c-muted); }
+.cst-cc-excel-form select, .cst-cc-excel-form input[type="file"] {
+  border: 1px solid var(--c-border); border-radius: 6px; padding: 6px 8px; font-size: 12.5px; background: #fff;
+}
+.cst-pill-centro {
+  display: inline-block; background: var(--tint-deep); color: var(--c-blue-mid);
+  border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 700;
+  margin: 2px 4px 2px 0;
+}
+
+/* ===== Equipo del Proyecto: filas agrupadas por persona =====
+   Cuando alguien está en varios proyectos, sus filas se listan seguidas con
+   el nombre solo en la primera (renderEquipoTable) — este bloque las une
+   visualmente con una franja teal a la izquierda, para que se lean como
+   "una persona, varios proyectos" y no como una fila duplicada por error. */
+#cst-equipo-tbody tr.cst-equipo-mas-abajo td { border-bottom: none; }
+#cst-equipo-tbody tr.cst-equipo-cont td { border-top: none; padding-top: 3px; }
+#cst-equipo-tbody tr.cst-equipo-agrupada td:first-child { border-left: 2.5px solid var(--c-teal); }
+#cst-equipo-tbody tr.cst-equipo-zebra { background: var(--tint-navy-soft); }
+
+#cst-form-acceso { max-width: 640px; margin: 14px 0; }
+
+/* ===== Equipo y Gastos: sub-pestaña Configuración (umbrales) ===== */
+/* Rediseño 2 sep 2026. Antes: 8 tarjetas idénticas en una rejilla plana,
+   cada una con un botón "Guardar" navy a TODO el ancho (.btn-primary trae
+   width:100%) — el botón pesaba visualmente más que el número que se
+   estaba editando, y ocho de ellos encendidos a la vez hacían ver el panel
+   como si todo estuviera pendiente de acción.
+   Ahora: tres grupos con color de acento propio (paleta corporativa), el
+   valor como protagonista del campo, y el botón callado hasta que de
+   verdad hay algo que guardar. */
+/* Configuración es el ÚNICO subpanel cuyo encabezado no vive dentro de un
+   .cst-module-card (los otros seis sí — ver costeo.html): sin el card, el
+   head quedaba con esquinas cuadradas y la descripción suelta sobre el
+   fondo gris, pegada al primer grupo. Se le da el mismo redondeo que a las
+   tarjetas del resto del módulo y aire suficiente antes del contenido, sin
+   meter las tarjetas de umbrales dentro de otra tarjeta. */
+.cst-subpanel > .cst-module-head { border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
+/* El aire bajo ese head lo daba la descripción que colgaba de él, eliminada
+   el 11 sep 2026 a pedido explícito — sin ella el primer grupo de umbrales
+   quedaba pegado al borde inferior del encabezado oscuro. Ahora el margen lo
+   pone el head mismo, exista o no algo entre medio. */
+.cst-subpanel > .cst-module-head { margin-bottom: 24px; }
+.cst-subpanel > .cst-module-head + .cst-module-desc { margin: 0 2px 22px; }
+
+.cst-config-grid { display: flex; flex-direction: column; gap: 26px; }
+
+/* --cfg-accent / --cfg-soft los define cada grupo en línea (ver
+   CONFIG_GRUPOS en costeo-accesos.js) y los heredan sus tarjetas: así el
+   color vive en UN solo lugar por grupo, no repetido por tarjeta. */
+.cst-cfg-group-head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
+.cst-cfg-group-icon {
+  width: 32px; height: 32px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; font-size: 15px;
+  background: var(--cfg-soft); border: 1px solid var(--cfg-accent);
+}
+.cst-cfg-group-head h4 {
+  margin: 0; font-size: 14.5px; color: var(--c-ink); letter-spacing: .1px;
+}
+.cst-cfg-group-desc { margin: 1px 0 0; font-size: 12px; color: var(--c-muted); }
+
+.cst-cfg-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 1100px) { .cst-cfg-cards { grid-template-columns: 1fr; } }
+
+.cst-cfg-card {
+  position: relative; overflow: hidden;
+  background: #fff; border: 1px solid var(--c-border); border-radius: var(--radius-lg);
+  padding: 15px 17px 14px 19px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 9px;
+  transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+/* Franja de acento a la izquierda: identifica el grupo sin gastar una
+   línea de texto ni teñir la tarjeta entera. */
+.cst-cfg-card::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 4px;
+  background: var(--cfg-accent);
+}
+.cst-cfg-card:hover {
+  box-shadow: var(--shadow-lift); transform: translateY(-2px);
+  border-color: var(--cfg-accent);
+}
+
+.cst-cfg-card-head { display: flex; align-items: flex-start; gap: 11px; }
+.cst-cfg-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; font-size: 15px;
+  background: var(--cfg-soft);
+}
+.cst-cfg-titles { min-width: 0; }
+.cst-cfg-titles h4 { margin: 0; font-size: 13.5px; line-height: 1.35; color: var(--c-ink); }
+/* El badge anterior era amarillo sobre amarillo (--c-yellow sobre #FFF3CD):
+   ilegible. Es un dato secundario — gris, y que el color lo ponga el acento
+   del grupo. */
+.cst-cfg-badge {
+  display: inline-block; margin-top: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 20px;
+  background: var(--c-grey-bg); color: var(--c-muted); white-space: nowrap;
+}
+.cst-cfg-desc { margin: 0; font-size: 12px; line-height: 1.45; color: var(--c-muted); }
+
+/* margin-top:auto pega el campo al fondo: con descripciones de distinto
+   largo, los campos de las dos tarjetas de una fila quedan alineados. */
+.cst-cfg-form { display: flex; align-items: stretch; gap: 9px; margin-top: auto; padding-top: 2px; }
+
+.cst-cfg-field {
+  flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 7px;
+  border: 1.5px solid var(--c-border); border-radius: 10px;
+  padding: 7px 13px; background: var(--tint-navy-soft); cursor: text;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.cst-cfg-field:focus-within {
+  border-color: var(--cfg-accent); background: #fff;
+  box-shadow: 0 0 0 3px var(--cfg-soft);
+}
+.cst-cfg-field input {
+  flex: 1; min-width: 0; border: 0; background: transparent; padding: 0;
+  font: inherit; font-size: 19px; font-weight: 700; color: var(--c-ink);
+  font-variant-numeric: tabular-nums;
+}
+.cst-cfg-field input:focus { outline: none; }
+/* Las flechitas del input[type=number] parten el campo en dos y no aportan
+   nada aquí (son valores que se escriben, no que se pasean de uno en uno). */
+.cst-cfg-field input::-webkit-outer-spin-button,
+.cst-cfg-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cst-cfg-field input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+.cst-cfg-unit { flex: none; font-size: 12px; font-weight: 600; color: var(--c-muted); }
+
+.cst-cfg-save {
+  flex: none; border: 0; border-radius: 10px; cursor: pointer;
+  padding: 0 17px; font-size: 12.5px; font-weight: 700; font-family: inherit;
+  background: var(--c-grey-bg); color: var(--c-muted-soft);
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+.cst-cfg-save:disabled { cursor: default; }
+.cst-cfg-form.is-dirty .cst-cfg-save {
+  background: var(--c-navy); color: #fff; box-shadow: var(--shadow-sm);
+}
+.cst-cfg-form.is-dirty .cst-cfg-save:hover { background: var(--deep-700); box-shadow: var(--shadow-md); }
+.cst-cfg-save:not(:disabled):active { transform: translateY(1px); }
+
+/* "✓ Guardado" sobre la tarjeta que se acaba de cambiar — el usuario está
+   mirando ese campo, no la esquina donde salen los toast. */
+.cst-cfg-card.is-saved { border-color: var(--c-teal); }
+.cst-cfg-card.is-saved::after {
+  content: '✓ Guardado'; position: absolute; top: 13px; right: 15px;
+  font-size: 10.5px; font-weight: 700; color: var(--aqua-800);
+  background: var(--tint-aqua); padding: 3px 10px; border-radius: 20px;
+  animation: cst-cfg-saved-in .25s ease-out;
+}
+@keyframes cst-cfg-saved-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cst-cfg-card, .cst-cfg-card.is-saved::after { transition: none; animation: none; }
+  .cst-cfg-card:hover { transform: none; }
+}
+
+/* ===== Indicadores: Panel Comparativo / Gráficos ===== */
+/* Las tres subpestañas del panel de Indicadores muestran/ocultan un
+   .cst-ind-view (ver initIndicadoresTabs en costeo-indicadores.js).
+   Reparte el aire entre sus bloques igual que .cst-module-body, que es de
+   quien cuelga: leyenda, tarjetas resumen, títulos de sección y grillas son
+   hijos de esta vista, no del cuerpo de la tarjeta, así que el gap de aquel
+   no los alcanzaba — quedaban uno encima de otro sin separación propia. */
+.cst-ind-view { display: flex; flex-direction: column; gap: 22px; }
+.cst-ind-view > .cst-section-head:not(:first-child) { margin-top: 10px; }
+
+.cst-comp-table-wrap { overflow-x: auto; }
+.cst-comp-table th, .cst-comp-table td { white-space: nowrap; }
+/* Cebrado + resalte de la fila más cara — mismo lenguaje visual que el
+   resto de tablas de la app (ver .cst-equipo-zebra), para que la tabla no
+   se vea como texto plano al lado de los gráficos de arriba. */
+.cst-comp-table tbody tr:nth-child(even) { background: var(--c-grey-bg); }
+.cst-comp-table tbody tr:hover { background: rgba(57, 212, 204, .08); }
+
+/* --- Panel Comparativo: 3 tarjetas resumen --- */
+.cst-comp-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.cst-comp-kpi {
+  background: #fff; border: 1px solid var(--c-border); border-left: 4px solid var(--c-teal);
+  border-radius: 10px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 1px 2px rgba(12, 17, 59, .04);
+}
+.cst-comp-kpi-label { font-size: 11px; color: var(--c-muted); text-transform: uppercase; letter-spacing: .3px; }
+.cst-comp-kpi-value { font-size: 22px; font-weight: 700; color: var(--c-ink); }
+.cst-comp-kpi-sub { font-size: 11.5px; color: var(--c-muted); }
+
+/* Los dos gráficos (costo laboral / horas extra) lado a lado en pantallas
+   anchas — antes iban apilados a todo el ancho, con muchísimo espacio en
+   blanco al lado de una línea o de 4 barras angostas. */
+.cst-comp-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+.cst-comp-charts-grid .cst-graf-card { margin-bottom: 0; }
+.cst-comp-table-card { padding-bottom: 6px; }
+
+/* Tarjeta genérica que envuelve un gráfico (línea/barras) — reusada por
+   Panel Comparativo y por el chart semanal al fondo de Gráficos. */
+.cst-graf-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 16px 18px 18px; margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(12, 17, 59, .04);
+}
+.cst-graf-card h4 {
+  margin: 0 0 12px; font-size: 13px; color: var(--c-ink); font-weight: 700;
+}
+.cst-graf-card-wide { grid-column: 1 / -1; }
+.cst-graf-semanal-card { margin-top: 4px; }
+
+/* El CONTENEDOR (no el <svg>) tiene la altura fija — así JS puede medir su
+   clientWidth/clientHeight reales en píxeles ANTES de generar el <svg>, y
+   usar exactamente esos números como viewBox (ver svgLinea() en
+   costeo-indicadores.js). Antes el viewBox usaba un ancho inventado (600)
+   que el navegador estiraba de forma NO uniforme para llenar un contenedor
+   mucho más ancho — eso deformaba las letras horizontalmente (se veía
+   "raro", texto como estirado). Con el viewBox = tamaño real, 1 unidad SVG
+   = 1 píxel en ambos ejes, sin distorsión. */
+.cst-graf-svg-wrap { width: 100%; height: 210px; }
+.cst-graf-semanal-card .cst-graf-svg-wrap { height: 240px; }
+/* overflow: visible — el <svg> raíz recorta su contenido por defecto; las
+   etiquetas de los puntos extremos (primero/último) quedan justo en el
+   borde del viewBox y sin esto se veían cortadas (caso real reportado). */
+.cst-graf-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* Grid de tarjetas, una por indicador (ver renderGraficos en
+   costeo-indicadores.js) — angosta (180px) para las de velocímetro/número;
+   las de barra comparativa entre proyectos ocupan 2 columnas (más ancho de
+   sobra para los nombres de los proyectos). */
+.cst-graf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.cst-graf-ind-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 12px 12px 14px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+}
+.cst-graf-ind-card-ancha { grid-column: span 2; }
+.cst-graf-ind-head {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  margin-bottom: 2px;
+}
+.cst-graf-ind-num {
+  flex-shrink: 0;
+  background: var(--c-navy); color: #fff;
+  font-size: 10px; font-weight: 700;
+  border-radius: 999px; padding: 1px 7px;
+}
+.cst-graf-ind-head h4 {
+  margin: 0; font-size: 11.5px; font-weight: 700; color: var(--c-ink);
+  text-align: left; line-height: 1.25;
+}
+
+/* Velocímetro 100% CSS (conic-gradient) — --pct (0-100) lo fija
+   gaugeHtml() en costeo-indicadores.js. Nada de librería externa: esto
+   siempre renderiza, sin depender de que un CDN cargue. */
+.cst-gauge-donut {
+  --pct: 0;
+  width: 88px; height: 88px; margin: 4px auto 2px;
+  border-radius: 50%;
+  background: conic-gradient(var(--aqua-500) calc(var(--pct) * 1%), var(--tint-navy-line) 0);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.cst-gauge-donut::before {
+  content: ''; position: absolute; inset: 9px;
+  border-radius: 50%; background: #fff;
+}
+.cst-gauge-donut span {
+  position: relative; z-index: 1;
+  font-size: 13.5px; font-weight: 700; color: var(--c-ink);
+}
+.cst-gauge-donut.is-sin-datos { background: var(--tint-navy-line); }
+.cst-gauge-donut.is-sin-datos span { color: var(--c-muted); font-size: 10.5px; }
+
+/* Tarjeta "número grande" (#4 fecha de quiebre) — no es comparable entre
+   proyectos en una barra legible. */
+.cst-graf-ind-stat {
+  min-height: 88px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--c-ink);
+  padding: 4px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* Barras horizontales comparando el mismo indicador entre proyectos
+   (#5, #6, #7 — ver BARRA_PROYECTOS_INDICADORES en costeo-indicadores.js).
+   El proyecto elegido en el filtro global queda resaltado (barra en teal
+   + fondo). */
+.cst-graf-barras-proyectos {
+  width: 100%; text-align: left;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 2px 0;
+}
+.cst-graf-barra-fila {
+  display: grid; grid-template-columns: 84px 1fr 64px;
+  align-items: center; gap: 8px;
+  font-size: 10.5px;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+.cst-graf-barra-fila.is-destacado { background: rgba(57, 212, 204, .1); }
+.cst-graf-barra-nombre {
+  color: var(--c-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cst-graf-barra-fila.is-destacado .cst-graf-barra-nombre { color: var(--c-ink); font-weight: 700; }
+.cst-graf-barra-track {
+  background: var(--tint-navy); border-radius: 999px; height: 8px; overflow: hidden;
+}
+.cst-graf-barra-fill { height: 100%; border-radius: 999px; }
+.cst-graf-barra-valor { text-align: right; font-weight: 700; color: var(--c-ink); font-size: 10.5px; }
+
+.cst-graf-ind-desc {
+  margin: 4px 0 0; font-size: 10.5px; color: var(--c-muted); line-height: 1.3;
+}
+
+/* ===== Comercial ===== */
+.cst-value-green { color: var(--lime-900); }
+.cst-value-orange { color: var(--c-yellow); }
+.cst-value-red { color: var(--c-red); }
+
+/* Cabecera con degradado teal→navy (28 ago 2026, "hazlo más atractivo"):
+   mismo lenguaje visual que el resto de las tarjetas de módulo (Equipo del
+   Proyecto usa azul→navy, Costo No Planeado usa amarillo) — el Simulador
+   usa teal porque es el color que ya identifica "esto es un ensayo,
+   no un dato real" en toda la pantalla (el pill "🧪 simulado", el borde
+   punteado teal de "+ Nuevo proyecto", el foco teal de los inputs). */
+/* Solo layout: la banda del Simulador es la misma de todos los encabezados
+   (ver .cst-module-head). Esta clase se queda porque su fila SI es distinta
+   — lleva el pill de "escenario" y tiene que poder partirse en dos lineas. */
+.cst-module-head-sim {
+  flex-wrap: wrap; row-gap: 8px;
+}
+.cst-module-head-sim .cst-module-icon { background: rgba(255,255,255,.16); }
+/* Contorno blanco sobre la banda azul, el mismo recurso que .cst-btn-new
+   (11 sep 2026, a pedido explicito): era una pastilla amarilla rellena, que
+   sobre el azul principal gritaba mas que el titulo del propio encabezado.
+   Sigue leyendose como aviso por el texto en mayuscula, no por el color. */
+.cst-badge-escenario {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .3px; padding: 5px 12px; border-radius: 20px;
+  background: rgba(255,255,255,.10); color: #fff; white-space: nowrap; margin-left: auto;
+  border: 1.5px solid rgba(255,255,255,.55);
+}
+.cst-com-simulador-body { margin-top: 4px; }
+.cst-com-sim-vacio { text-align: center; padding: 18px; }
+
+.cst-sim-table { margin-bottom: 8px; }
+/* Encabezado con un tinte teal apenas perceptible — misma familia de color
+   que el resto del Simulador, sin competir con el texto de la tabla. */
+.cst-sim-table thead th { background: rgba(57, 212, 204,.07); padding: 8px 8px; border-radius: 4px; }
+.cst-sim-table th.cst-sim-subtotal, .cst-sim-table td.cst-sim-subtotal { text-align: right; }
+.cst-sim-table td { vertical-align: middle; }
+/* Cargo (28 ago 2026, "+ Agregar rol"): mismo select que usa la tabla de
+   Plan de Recursos (.cst-plan-table), para poder simular un rol que hoy
+   no existe en el equipo real del proyecto. */
+.cst-sim-table select {
+  width: 100%; min-width: 160px; font-size: 12.5px; padding: 5px 7px;
+  border: 1px solid var(--c-border); border-radius: 6px; background: #fff; color: var(--c-ink);
+}
+/* "+ Agregar al equipo" solo aparece junto a "✕" en las filas que el
+   usuario sumó a mano (rol nuevo) — dos botones en la misma celda, uno
+   debajo del otro para no ensanchar la columna. */
+.cst-sim-acciones-fila { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+.cst-sim-stepper { display: inline-flex; align-items: center; gap: 8px; }
+.cst-sim-stepper button {
+  width: 26px; height: 26px; border-radius: 999px; border: 1px solid var(--c-teal);
+  background: #fff; color: var(--c-teal-ink); font-size: 15px; font-weight: 700;
+  cursor: pointer; line-height: 1; flex: none; transition: background 120ms, color 120ms, transform 80ms;
+}
+.cst-sim-stepper button:hover { background: var(--c-teal); color: #fff; }
+.cst-sim-stepper button:active { transform: scale(.92); }
+.cst-sim-stepper span { min-width: 62px; text-align: center; font-weight: 600; }
+.cst-sim-input {
+  width: 68px; min-width: 68px; height: 26px; text-align: center; font-weight: 600;
+  font-size: 13px; font-family: inherit; border: 1px solid var(--c-border); border-radius: 6px;
+  color: var(--c-ink); background: #fff; padding: 0 4px;
+}
+.cst-sim-input:focus { outline: none; border-color: var(--c-teal); box-shadow: 0 0 0 2px rgba(0,0,0,.04); }
+/* Quita las flechitas nativas del navegador: ya hay botones −/+ al lado. */
+.cst-sim-input::-webkit-outer-spin-button,
+.cst-sim-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cst-sim-input[type="number"] { -moz-appearance: textfield; }
+/* Presupuesto y valor de contrato salen en millones ("10.000.000") — el
+   ancho fijo de 68px que usan Personas/Costo/Horas los cortaría a la mitad. */
+.cst-sim-input-money { width: 110px; min-width: 110px; }
+
+.cst-sim-label {
+  display: block; margin-bottom: 10px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--c-muted);
+}
+/* Presupuesto / Contrato / Semanas — antes eran una fila de texto plano
+   bajo la tabla y quedaban invisibles al lado de "Personas"/"Costo/hora"
+   (a pedido explícito, 28 ago 2026): ahora usan las mismas tarjetas
+   .cst-summary-card + el pill "🧪 simulado" que las tarjetas de resultado
+   de abajo, para que sean igual de notorias — son controles para mover,
+   no solo números para leer. */
+.cst-sim-controles-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding-top: 16px; margin-top: 4px; border-top: 1px solid var(--c-border);
+}
+.cst-sim-controles-head .cst-sim-nuevo-seccion-label { margin: 0; }
+.cst-sim-controles { margin: 12px 0 22px; }
+.cst-sim-controles .cst-sim-stepper { width: 100%; }
+.cst-sim-controles .cst-sim-input { flex: 1; }
+.cst-sim-controles .cst-sim-input-money { width: auto; min-width: 0; }
+/* Borde superior azul (--c-blue-mid): distingue de un vistazo estas 3
+   tarjetas ("cosas que TÚ mueves") de las de resultado más abajo (borde
+   punteado ámbar, "lo que la simulación calculó") — mismo recurso visual
+   que ya usa el resumen de Alertas para separar severidades. */
+.cst-sim-controles .cst-summary-card { border-top: 3px solid var(--c-blue-mid); }
+
+.cst-sim-resultados { margin-top: 4px; }
+/* Ninguna tarjeta simulada se ve blanca-con-sombra como las reales del
+   resumen de arriba (.cst-summary-card por defecto): fondo gris + borde
+   punteado ámbar, para que quede claro incluso en una captura recortada
+   que estos 4 números NO vienen de la base de datos. */
+.cst-sim-resultados .cst-summary-card {
+  background: var(--c-grey-bg); box-shadow: none;
+  border: 1px dashed #e0b64a;
+}
+.cst-sim-pill {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  color: #8a6400; background: #fff3d6; border: 1px solid #f0d896;
+  border-radius: 999px; padding: 2px 9px; margin-bottom: 8px;
+}
+/* "+ Agregar rol": mismo tono teal-sobre-blanco que ya usan los botones de
+   "+ Nuevo proyecto" (.cst-sim-nuevo-acciones) — es la acción que abre el
+   ensayo, se nota como tal en vez de un botón gris más. */
+.cst-sim-btn-add { border: 1px solid var(--c-teal); color: var(--aqua-800); background: #fff; }
+.cst-sim-btn-add:hover { background: rgba(57, 212, 204,.08); }
+/* "+ Agregar al equipo": el único botón del simulador que SÍ escribe en la
+   base de datos (lleva a Equipo del Proyecto) — se marca relleno en teal,
+   distinto de todo lo demás (que es puro ensayo), para que se note como
+   la acción "esto ya no es simulación, es de verdad". */
+.cst-sim-btn-contratar {
+  background: var(--c-teal); color: #fff; border: 1px solid var(--c-teal); font-weight: 600;
+}
+.cst-sim-btn-contratar:hover { background: var(--aqua-700); }
+
+/* Veredicto final de la comparación — antes era un párrafo suelto; ahora
+   una tarjeta con el mismo verde/rojo que ya usa el resto de la app para
+   "mejora/empeora" (.cst-value-green / .cst-value-red), para que se lea
+   como la conclusión del ensayo y no como una nota al pie. */
+.cst-sim-comparacion {
+  margin: 14px 0 0; padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; color: var(--c-text); line-height: 1.5;
+  background: var(--c-grey-bg); border-left: 4px solid var(--c-border);
+}
+.cst-sim-comparacion.es-mejora { border-left-color: var(--lime-900); background: var(--tint-lime); }
+.cst-sim-comparacion.es-empeora { border-left-color: var(--c-red); background: #fdecec; }
+
+/* Selector local del simulador (elige el proyecto a simular o "+ Nuevo
+   proyecto") — separado a propósito del filtro global de Centro de Costos
+   de arriba, que también maneja Indicadores y no tiene noción de "nuevo". */
+.cst-sim-proyecto-select {
+  display: flex; flex-direction: column; gap: 4px; max-width: 360px; margin: 14px 0 0;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--c-muted);
+}
+.cst-sim-proyecto-select select {
+  border: 1px solid var(--c-border); border-radius: 8px; padding: 8px 10px;
+  font-size: 13px; font-weight: 600; color: var(--c-ink); background: #fff;
+  text-transform: none; letter-spacing: normal;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.cst-sim-proyecto-select select:focus {
+  outline: none; border-color: var(--c-teal); box-shadow: 0 0 0 3px rgba(57, 212, 204, .16);
+}
+
+/* ---- "+ Nuevo proyecto" dentro del simulador ----
+   Mismo lenguaje visual que el Plan de Recursos del Centro de Costos
+   (degradado teal/azul + borde punteado teal): las dos pantallas arman el
+   mismo tipo de dato (equipo por rol -> presupuesto calculado), así que se
+   ven como la misma familia de componente en vez de dos estilos distintos. */
+.cst-sim-nuevo {
+  background: linear-gradient(150deg, rgba(57, 212, 204,.09) 0%, rgba(37, 0, 122,.06) 55%, rgba(57, 212, 204,.05) 100%);
+  border: 1px dashed var(--c-teal);
+  border-radius: 12px; padding: 18px 20px; margin-top: 4px;
+}
+.cst-com-sim-vacio-nota {
+  margin: 0 0 16px; font-size: 13px; color: var(--c-text); line-height: 1.5;
+}
+.cst-sim-nuevo-seccion-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: var(--c-teal-ink); margin: 0 0 10px;
+}
+.cst-sim-nuevo-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 16px;
+  margin-bottom: 20px;
+}
+.cst-sim-nuevo-meta label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--c-muted); font-weight: 600; }
+.cst-sim-nuevo-meta input, .cst-sim-nuevo-meta select {
+  border: 1px solid var(--c-border); border-radius: 7px; padding: 7px 9px; font-size: 12.5px;
+  background: #fff; color: var(--c-text); transition: border-color 120ms, box-shadow 120ms;
+}
+.cst-sim-nuevo-meta input:focus, .cst-sim-nuevo-meta select:focus {
+  outline: none; border-color: var(--c-teal); box-shadow: 0 0 0 3px rgba(57, 212, 204, .14);
+}
+.cst-sim-nuevo .cst-plan-table {
+  background: #fff; border-radius: 8px; padding: 10px 12px 4px; border: 1px solid var(--c-border);
+}
+.cst-sim-nuevo .cst-plan-footer { padding: 2px 2px 0; }
+.cst-sim-nuevo-acciones { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin: 16px 0 0; }
+.cst-sim-nuevo-acciones .btn-ghost {
+  border: 1px solid var(--c-teal); color: var(--aqua-800); background: #fff;
+}
+.cst-sim-nuevo-acciones .btn-ghost:hover { background: rgba(57, 212, 204,.08); }
+.cst-sim-nuevo-acciones .btn-primary {
+  background: var(--c-navy);
+  box-shadow: 0 2px 8px rgba(12, 17, 59, .18);
+}
+.cst-sim-nuevo-acciones .btn-primary:hover { background: var(--deep-700); }
+
+/* Confirmación tras "Agregar proyecto" — mismo verde que usa el resto del
+   panel para "utilidad/positivo" (.cst-value-green), para que se lea como
+   "salió bien" de un vistazo, no solo por el texto. */
+.cst-sim-exito {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--tint-aqua); border: 1px solid var(--aqua-300); border-radius: 12px;
+  padding: 16px 18px; margin-top: 4px;
+}
+/* Era un emoji de 26px; ahora es un icono SVG, que se dimensiona por su
+   caja y no por el tamano de letra. */
+.cst-sim-exito-icono { line-height: 1; color: var(--lime-800); }
+.cst-sim-exito-icono .cst-ico { width: 26px; height: 26px; vertical-align: 0; }
+.cst-sim-exito > div { flex: 1; min-width: 220px; }
+.cst-sim-exito-titulo { margin: 0; font-weight: 700; color: var(--lime-900); font-size: 13.5px; }
+.cst-sim-exito-detalle { margin: 4px 0 0; font-size: 12.5px; color: var(--c-text); }
+
+.cst-com-ia {
+  background: var(--c-navy); border-radius: 12px; padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.cst-com-ia-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cst-com-ia-head h3 { margin: 0 0 4px; font-size: 16px; color: #fff; }
+.cst-com-ia-head p { margin: 0; font-size: 12.5px; color: rgba(255,255,255,.65); max-width: 620px; }
+.cst-com-ia-ajustes { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.2); }
+.cst-com-ia-msg {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
+  padding: 12px 14px; font-size: 13px; color: rgba(255,255,255,.85);
+}
+.cst-com-ia-pregunta {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
+  padding: 12px 14px; font-size: 13px; color: #fff; resize: vertical; min-height: 50px;
+}
+.cst-com-ia-pregunta::placeholder { color: rgba(255,255,255,.4); }
+.cst-com-ia-btn { align-self: flex-start; background: var(--c-teal); }
+
+.cst-com-tabla-title { margin: 0 0 4px; font-size: 16px; color: var(--c-ink); }
+
+/* ===== Ranking de proyectos (Comercial) ===== */
+.cst-com-ranking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 720px) { .cst-com-ranking-grid { grid-template-columns: 1fr; } }
+.cst-com-ranking-titulo { margin: 0 0 8px; font-size: 13px; color: var(--c-ink); }
+.cst-com-ranking-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cst-com-ranking-lista li {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; background: var(--c-grey-bg); font-size: 13px;
+}
+.cst-com-ranking-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-ink); font-weight: 600; }
+/* El margen ocupa SIEMPRE el mismo ancho y la cifra se alinea a la derecha
+   (11 sep 2026, reportado por el usuario): "margen 100%" y "margen -31.56%"
+   miden distinto, asi que cada fila empujaba su pastilla de estado a una
+   posicion diferente y la columna se veia torcida. tabular-nums ademas hace
+   que todos los digitos midan igual, para que los decimales queden uno bajo
+   otro entre filas. */
+.cst-com-ranking-margen {
+  font-weight: 700; white-space: nowrap; flex: none;
+  display: inline-flex; gap: 5px; align-items: baseline; justify-content: flex-end;
+  min-width: 124px;
+}
+.cst-com-ranking-margen b { min-width: 66px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.cst-estado-pill {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+}
+.cst-estado-pill.estado-viable { background: var(--lime-100); color: var(--lime-900); }
+.cst-estado-pill.estado-riesgo { background: #FFF3CD; color: #8a6400; }
+.cst-estado-pill.estado-no_viable { background: #fbdada; color: var(--c-red); }
+.cst-estado-pill.estado-no_aplica { background: var(--c-grey-bg); color: var(--c-muted); }
+/* Estado real del proyecto en Comercial (Ejecución Presupuestal) — mismos
+   colores que estado-viable/riesgo/no_viable de arriba, clave distinta
+   porque ya no se basa en margen. */
+.cst-estado-pill.estado-sin_riesgo { background: var(--lime-100); color: var(--lime-900); }
+.cst-estado-pill.estado-en_riesgo { background: #FFF3CD; color: #8a6400; }
+.cst-estado-pill.estado-perdida { background: #fbdada; color: var(--c-red); }
+
+.cst-com-acciones { display: flex; gap: 6px; white-space: nowrap; }
+.cst-com-info-btn { padding: 4px 9px; }
+
+.cst-com-detalle td { padding: 0 16px 14px; border-top: none; }
+.cst-com-detalle-body {
+  background: var(--c-grey-bg); border-radius: 8px; padding: 12px 14px;
+  display: flex; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--c-ink);
+}
+
+/* Contorno rojo sobre blanco, no relleno (11 sep 2026, a pedido explicito):
+   lo usan "Eliminar" y "Rechazar" en todas las tablas del modulo, y en una
+   fila con varias acciones el rojo macizo se llevaba la vista por encima de
+   la accion principal. Sigue siendo inconfundible por el color, solo que en
+   la letra y el borde.
+   El padding compensa el borde (7-1.5 y 14-1.5) para que el boton mida
+   exactamente lo mismo que .btn-approve y .btn-edit, que no llevan borde:
+   con 7/14 quedaba 3px mas alto que sus vecinos de la misma fila. */
+.btn-danger {
+  background: #fff; color: var(--c-red); border: 1.5px solid var(--c-red);
+  padding: 5.5px 12.5px;
+  border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .15s ease, transform .05s ease, box-shadow .15s ease;
+}
+.btn-danger:hover { background: #FFF5F5; box-shadow: var(--shadow-sm); }
+.btn-danger:active { transform: translateY(1px); box-shadow: none; }
+
+/* Editar, en el mismo azul que ya usan los pills de proyecto
+   (.cst-pill-centro) en toda la app — no es un color nuevo, es el que el
+   proyecto ya usa para "informativo/neutral", separado del verde
+   (aprobar/activo) y el rojo (eliminar/rechazar/inactivo). */
+.btn-edit {
+  background: var(--c-blue-mid); color: #fff; border: 0; padding: 7px 14px;
+  border-radius: 6px; font-size: 13px; cursor: pointer;
+  transition: background .15s ease, transform .05s ease, box-shadow .15s ease;
+}
+.btn-edit:hover { background: var(--deep-700); box-shadow: var(--shadow-sm); }
+.btn-edit:active { transform: translateY(1px); box-shadow: none; }
+
+/* ===== Tarifas por Cargo ===== */
+/* Define el costo/hora estándar de cada cargo. Los estados de la columna
+   "Personas" son la información que decide la acción: si hay gente sin
+   tarifa, aplicar en bloque vale la pena; si no, no hay nada que hacer. */
+
+/* Cualquier PM puede dar de alta un cargo desde acá (ver POST
+   /tarifas-cargo) — tarjeta con acento teal (mismo tono que el resto de
+   acciones "crear" del módulo) para que se note como el punto de entrada
+   del catálogo, sin competir en tamaño con la tabla de abajo. */
+.cst-tc-nuevo-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0 0 20px;
+  flex-wrap: wrap;
+  /* Mismo azul rebajado que .cst-equipo-nueva-persona, la otra tarjeta de
+     alta en linea del modulo. */
+  background: linear-gradient(135deg, rgba(37, 0, 122, .07) 0%, rgba(37, 0, 122, .03) 100%);
+  border: 1px solid rgba(37, 0, 122, .28);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.cst-tc-nuevo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--c-navy);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cst-tc-nuevo-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+.cst-tc-nuevo-form input {
+  min-width: 240px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #fff;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.cst-tc-nuevo-form input:focus {
+  outline: none;
+  border-color: var(--c-navy);
+  box-shadow: 0 0 0 3px rgba(37, 0, 122, .16);
+}
+.cst-tc-nuevo-submit {
+  background: var(--c-navy);
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+}
+.cst-tc-nuevo-submit:hover { background: var(--deep-700); }
+.cst-tc-nuevo-form .emp-form-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.cst-tc-meta {
+  color: var(--c-muted);
+  font-size: 12px;
+}
+
+/* Eliminar un cargo del catálogo es irreversible, aunque tenga gente
+   asignada — se marca con el mismo rojo de la paleta (--c-red /
+   estado-no_viable) para que se lea como "acción irreversible", igual que
+   en el resto de la app. */
+/* "Eliminar" de una tabla que usa botones fantasma (Catalogo de Cargos,
+   Centro de Costos): mismo contorno rojo que .btn-danger, para que todos los
+   Eliminar/Rechazar del modulo se vean igual (11 sep 2026, a pedido
+   explicito). Antes el borde era un rojo lavado (#f3b4b0) que de lejos se
+   leia como un boton neutro mas. */
+.btn-ghost.cst-tc-peligro,
+.btn-ghost.is-peligro {
+  color: var(--c-red);
+  border-color: var(--c-red);
+  font-weight: 600;
+}
+
+.btn-ghost.cst-tc-peligro:hover,
+.btn-ghost.is-peligro:hover {
+  background: #FFF5F5;
+  border-color: var(--c-red);
+}
+.btn-ghost.cst-tc-peligro:disabled,
+.btn-ghost.is-peligro:disabled {
+  color: var(--c-muted);
+  border-color: var(--c-border);
+  background: transparent;
+  cursor: not-allowed;
+}
+.btn-ghost.cst-tc-peligro:disabled:hover {
+  background: transparent;
+}
+
+#cst-tarifas-cargo-table td { vertical-align: middle; }
+#cst-tarifas-cargo-table td:last-child { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Aviso de filtro activo. Va debajo de la barra de filtros y no se puede
+   cerrar: mientras haya un recorte, los porcentajes comparan una parte
+   contra el total del proyecto y eso tiene que estar a la vista. */
+.cst-filtro-aviso {
+  display: block;
+  border-left: 3px solid #9a5b16;
+  border-radius: 8px;
+  background: #fdf4e3;
+  color: #6b4310;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.cst-filtro-aviso b { color: #4a3208; }
+
+/* Mensaje de éxito de Tarifas por Cargo — reemplaza window.alert().
+   Mismo verde que .cst-estado-pill.estado-viable en toda la app. */
+.cst-tc-msg-ok {
+  background: var(--lime-100);
+  color: var(--lime-900);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.cst-tc-hint {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--c-muted);
+  margin: -4px 0 4px;
+}
+
+/* Panel de confirmación de "Aplicar en bloque" — reemplaza window.confirm().
+   Azul de la paleta (--c-blue-mid/--c-blue-light) para "info a confirmar";
+   rojo de la paleta (--c-red, mismo tono de estado-no_viable) cuando el modo
+   es "todos" y sobrescribe tarifas ajustadas a mano. */
+.cst-tc-confirm {
+  background: var(--tint-deep);
+  border: 1px solid var(--c-blue-light);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.cst-tc-confirm p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; color: var(--c-ink); }
+.cst-tc-confirm-peligro {
+  background: #fbdada;
+  border-color: #f3b4b0;
+}
+.cst-tc-confirm-peligro p { color: #9e2a22; }
+
+/* ===== Costo No Planeado: estado de aprobación (sql/28) =====
+   Mismos tres colores que ya usa el resto del sistema para
+   "esperando / bien / mal": amarillo de .cst-cc-badge.b-riesgo, verde de
+   .cst-estado-pill.estado-viable y rojo de .estado-no_viable. No es una
+   paleta nueva, es la que ya está. El color no va solo: cada pill lleva
+   su texto (Pendiente / Aprobado / Rechazado) para quien no distingue
+   rojo de verde. */
+.cst-gasto-estado {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+}
+.cst-gasto-estado.estado-pendiente { background: #FFF3CD; color: #8a6400; }
+.cst-gasto-estado.estado-aprobado  { background: var(--lime-100); color: var(--lime-900); }
+.cst-gasto-estado.estado-rechazado { background: #fbdada; color: var(--c-red); }
+
+/* ===== Horas Extra: fecha/turno + tipo de hora (2 sep 2026) ===== */
+.cst-overtime-turno-rango { font-size: 11px; color: var(--c-muted); white-space: nowrap; }
+
+/* Mismo criterio de color que .cst-recargo-pill (Configuración → tabla de
+   recargos): gris/azul para lo que no lleva recargo o uno leve, rojo para
+   festivo (el caso de mayor recargo real). "Fin de semana" usa un tono
+   amarillo con borde punteado A PROPÓSITO — para que no se confunda a
+   simple vista con "festivo": el sábado no tiene recargo distinto al de
+   un día hábil, esto es solo informativo (ver el title del badge). */
+.cst-overtime-tipo-badge {
+  display: inline-block; font-size: 10.5px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+  margin: 1px 2px 1px 0;
+}
+.cst-overtime-tipo-badge.cat-diurno            { background: var(--tint-navy); color: var(--c-muted); }
+.cst-overtime-tipo-badge.cat-nocturno          { background: var(--tint-deep); color: var(--deep-500); }
+.cst-overtime-tipo-badge.cat-diurno-festivo,
+.cst-overtime-tipo-badge.cat-nocturno-festivo  { background: #FDECEC; color: #B3261E; }
+.cst-overtime-tipo-badge.cat-diurno-finde,
+.cst-overtime-tipo-badge.cat-nocturno-finde    { background: #FFF9E6; color: #8a6400; border: 1px dashed #E6C200; }
+
+/* ── Fórmula de nómina (sql/33): valor hora y tabla de recargos ───────── */
+
+/* Vista previa del valor hora bajo el par salario/costo-hora. Teal como el
+   resto de las confirmaciones del módulo: es un cálculo correcto, no un
+   aviso ni un error. Ocupa las dos columnas del formulario para que la
+   cuenta se lea completa en una línea. */
+.cst-valor-hora-hint {
+  grid-column: 1 / -1;
+  margin: 0; padding: 9px 13px; border-radius: 8px;
+  background: rgba(57, 212, 204, .09);
+  border-left: 3px solid var(--c-teal);
+  font-size: 12.5px; color: var(--c-ink);
+}
+
+/* Explica por qué el campo de Salario mensual de arriba quedó bloqueado
+   (readonly) al elegir un talento que ya tiene sueldo conocido — sin esto,
+   un campo gris sin ningún texto al lado se leería como un error, no como
+   una protección a propósito. Gris neutro y no teal/rojo: no es un cálculo
+   (como el de arriba) ni un problema, es solo información de contexto. */
+.cst-equipo-salario-bloqueado-hint {
+  grid-column: 1 / -1;
+  margin: 0; padding: 9px 13px; border-radius: 8px;
+  background: var(--tint-navy);
+  font-size: 12.5px; color: var(--c-muted);
+}
+
+/* Marca que el costo/hora de esa persona NO se escribió a mano: salió de
+   dividir su salario. Distingue de un vistazo las tarifas con origen
+   verificable de las tecleadas. */
+.cst-badge-salario {
+  display: inline-block; margin-left: 6px; padding: 2px 7px;
+  border-radius: 20px; font-size: 10px; font-weight: 700;
+  background: rgba(57, 212, 204, .14); color: var(--aqua-900);
+  text-transform: uppercase; letter-spacing: .3px;
+}
+
+.cst-formula-nomina { margin-top: 26px; }
+.cst-recargos-table { max-width: 720px; }
+.cst-recargos-table td { vertical-align: middle; }
+.cst-recargos-table td:nth-child(2),
+.cst-recargos-table td:nth-child(3),
+.cst-recargos-table th:nth-child(2),
+.cst-recargos-table th:nth-child(3) { text-align: right; white-space: nowrap; }
+
+/* La fórmula, escrita como fórmula (2 sep 2026): antes era un párrafo de
+   texto corrido donde el resultado —el dato que la gente viene a ver— era
+   una palabra más en la frase. */
+/* Mismo max-width que .cst-recargos-table: la fórmula y la tabla que la
+   desarrolla se leen como un bloque, no como dos anchos distintos. */
+.cst-formula-callout {
+  max-width: 720px;
+  background: linear-gradient(135deg, var(--tint-deep-soft) 0%, var(--tint-deep) 100%);
+  border: 1px solid var(--tint-deep-line); border-left: 4px solid var(--c-blue-mid);
+  border-radius: 12px; padding: 14px 18px;
+}
+.cst-formula-eq {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.cst-formula-term {
+  font-size: 13px; font-weight: 600; color: var(--c-text);
+  background: #fff; border: 1px solid var(--tint-deep-line); border-radius: 8px; padding: 4px 11px;
+}
+/* El divisor es el único término editable de la fórmula (tarjeta "Horas al
+   mes para el valor hora"): se marca para que se vea de dónde sale. */
+.cst-formula-term.is-param {
+  background: var(--c-navy); color: #fff; border-color: var(--c-navy);
+  font-variant-numeric: tabular-nums;
+}
+.cst-formula-op { font-size: 15px; font-weight: 700; color: var(--c-muted); }
+.cst-formula-result {
+  font-size: 22px; font-weight: 800; color: var(--c-ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -.3px;
+}
+.cst-formula-result small { font-size: 12px; font-weight: 600; color: var(--c-muted); margin-left: 3px; }
+.cst-formula-ej { margin: 9px 0 0; font-size: 12px; color: var(--c-muted); line-height: 1.45; }
+
+/* Factor como intensidad, no como número suelto: el color dice "esta hora
+   cuesta el doble" sin tener que comparar 2,65 contra 1,00 mentalmente.
+   Los 4 niveles los asigna nivelDe() en costeo-accesos.js. */
+.cst-recargo-pill {
+  display: inline-block; min-width: 54px; text-align: center;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.nivel-0 .cst-recargo-pill { background: var(--tint-navy); color: var(--c-muted); }
+.nivel-1 .cst-recargo-pill { background: var(--tint-deep); color: var(--deep-500); }
+.nivel-2 .cst-recargo-pill { background: #FFF4D6; color: #8A6300; }
+.nivel-3 .cst-recargo-pill { background: #FDECEC; color: #B3261E; }
+
+.cst-recargo-meter { display: flex; align-items: center; gap: 11px; justify-content: flex-end; }
+.cst-recargo-track {
+  flex: 1; max-width: 130px; height: 6px; border-radius: 999px;
+  background: var(--tint-navy); overflow: hidden;
+}
+.cst-recargo-fill { display: block; height: 100%; border-radius: 999px; background: var(--c-muted-soft); }
+.nivel-1 .cst-recargo-fill { background: var(--c-blue-mid); }
+.nivel-2 .cst-recargo-fill { background: var(--c-yellow); }
+.nivel-3 .cst-recargo-fill { background: var(--c-red); }
+.cst-recargo-pct {
+  min-width: 44px; font-size: 12.5px; font-weight: 600; color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Escalamiento de alertas (3/5 días sin corregir) ───────────────────── */
+/* Mismo lenguaje visual que las demás tarjetas del módulo (cst-module-head,
+   radius-lg, shadow-lift): esto no es un aviso aparte pegado con cinta, es
+   una tarjeta más del sistema — solo que con su propio color de cabecera. */
+
+.cst-escalamiento-card {
+  margin-bottom: 20px; border-radius: var(--radius-lg, 12px); overflow: hidden;
+  background: #fff; box-shadow: var(--shadow-md); border: 1px solid var(--c-border);
+  animation: cst-escalamiento-in .35s ease-out;
+}
+@keyframes cst-escalamiento-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Cabecera 'pm' en ámbar (recordatorio, todavía es tuyo); 'ceo' en rojo
+   (ya escaló). Mismos gradientes en diagonal que el resto de cst-module-head,
+   solo con la pareja de colores que corresponde a cada nivel. */
+.cst-module-head-red {
+  background: linear-gradient(135deg, var(--c-red) 0%, #7a1a1a 100%); color: #fff;
+}
+
+.cst-escalamiento-sub {
+  margin: 0; padding: 12px 22px 0; font-size: 12.5px; color: var(--c-muted);
+}
+
+.cst-escalamiento-items {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 22px 20px;
+}
+
+.cst-escalamiento-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--c-grey-bg); border-radius: 10px; padding: 12px 16px;
+  border-left: 4px solid var(--c-yellow);
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.cst-escalamiento-item:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.cst-escalamiento-item.nivel-ceo { border-left-color: var(--c-red); background: #fdf1f1; }
+
+.cst-escalamiento-dias-badge {
+  flex: none; width: 52px; height: 52px; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, var(--c-yellow) 0%, #e6a800 100%); color: #4a3a00;
+}
+.cst-escalamiento-item.nivel-ceo .cst-escalamiento-dias-badge {
+  background: linear-gradient(160deg, var(--c-red) 0%, #8a1f1f 100%); color: #fff;
+}
+.cst-escalamiento-dias-badge strong { font-size: 18px; line-height: 1; font-weight: 800; }
+.cst-escalamiento-dias-badge span { font-size: 9px; text-transform: uppercase; font-weight: 700; letter-spacing: .03em; }
+
+.cst-escalamiento-body { min-width: 0; flex: 1; }
+.cst-escalamiento-tipo {
+  margin: 0; font-size: 13px; font-weight: 700; color: var(--c-ink);
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.cst-escalamiento-tipo .cst-alert-sev { position: relative; }
+.cst-escalamiento-body .cst-alert-proyecto {
+  display: inline-block; margin-top: 2px; font-weight: 600;
+}
+.cst-escalamiento-detalle { margin: 4px 0 0; font-size: 12.5px; color: var(--c-text); line-height: 1.4; }
+.cst-escalamiento-ultimo {
+  margin: 8px 0 0; font-size: 12px; font-weight: 700; color: #8a1f1f;
+  background: #fdf1f1; border-radius: 6px; padding: 6px 10px; display: inline-block;
+}
+
+/* Equipo del Proyecto: las filas inactivas NO se atenuan (16 sep 2026).
+   styles.css baja a opacity .55 toda tr.emp-inactive, y eso servia cuando
+   los inactivos estaban ocultos por defecto. Ahora se quedan a la vista
+   para poder reactivarlos, y la opacidad lavaba tambien la pastilla roja
+   — justo la senal que hay que ver. La opacidad de un elemento no se puede
+   deshacer desde sus hijos, asi que hay que quitarla en la fila.
+   Se distingue igual: la pastilla en rojo y el texto atenuado.
+   Acotado a esta tabla por id — la de Empleados (employees-admin.js) usa la
+   misma clase y conserva su atenuado. */
+#cst-equipo-tbody tr.emp-inactive { opacity: 1; color: var(--c-muted); }
+
+/* Accion "Corregido" de las alertas sin corregir (16 sep 2026).
+   El texto de ayuda va junto al boton y no en un tooltip: explica que la
+   alerta puede VOLVER, y eso hay que leerlo ANTES de pulsar, no al pasar
+   el cursor por encima. */
+.cst-alert-acciones {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--c-border);
+}
+.cst-alert-ayuda { font-size: 11.5px; color: var(--c-muted); line-height: 1.35; }

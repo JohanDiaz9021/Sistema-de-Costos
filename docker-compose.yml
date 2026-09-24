@@ -1,0 +1,55 @@
+# GTC Dashboard de Planeacion - docker compose
+#
+# El contenedor del dashboard debe poder llegar al MySQL donde vive sistema_monitoreo.
+# Dos escenarios:
+#
+#  A) MySQL corre EN OTRO CONTENEDOR de docker en la misma red:
+#     En el .env de produccion poner DB_HOST=<nombre-servicio-mysql>
+#     Cambiar la red 'gtc-net' por la red donde vive el MySQL (o conectarlo a esta).
+#
+#  B) MySQL corre EN EL HOST (WAMP, MySQL nativo del servidor, etc.):
+#     En el .env poner DB_HOST=host.docker.internal
+#     extra_hosts agrega esa entrada en /etc/hosts del contenedor en Linux.
+#
+# Variables: todas vienen del archivo .env (mismo directorio).
+
+services:
+  dashboard:
+    build: .
+    image: gtc/dashboard-planeacion:latest
+    container_name: gtc-dashboard
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8011}:8011"
+    volumes:
+      # Las sesiones viven aqui (ver session() en server.js). Sin este
+      # volumen se guardarian DENTRO del contenedor y se perderian igual al
+      # recrearlo, que es justo lo que se vino a arreglar: el volumen es lo
+      # que hace que la gente siga conectada despues de un despliegue.
+      - sesiones:/app/.sesiones
+    extra_hosts:
+      # Permite usar DB_HOST=host.docker.internal en Linux (en Mac/Win ya existe).
+      - "host.docker.internal:host-gateway"
+    networks:
+      - gtc-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8011/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  # Nombrado (no bind mount) a proposito: lo gestiona Docker, no depende de
+  # una ruta del host y sobrevive a `docker compose up --build`. Se borra
+  # solo con `docker compose down -v`, que echaria a todos — igual que antes.
+  sesiones:
+
+networks:
+  gtc-net:
+    name: gtc-net
+    # Si MySQL ya corre en otra red docker, comentar la linea de arriba y poner:
+    #   external: true
+    #   name: <nombre-de-la-red-existente>

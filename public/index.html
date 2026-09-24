@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GTC — Dashboard de Planeación</title>
+<link rel="icon" type="image/png" href="/img/favicon.png" />
+<link rel="stylesheet" href="/css/styles.css" />
+<link rel="stylesheet" href="/css/costeo.css" />
+<!-- integrity (SRI): el navegador verifica el hash del archivo antes de
+     ejecutarlo. Si jsdelivr sirviera un echarts alterado, el navegador lo
+     rechaza en vez de correr el codigo de un tercero con la sesion del CEO
+     abierta. crossorigin="anonymous" es obligatorio para que SRI aplique. -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
+        integrity="sha384-Mx5lkUEQPM1pOJCwFtUICyX45KNojXbkWdYhkKUKsbv391mavbfoAmONbzkgYPzR"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <div class="cst-shell">
+    <aside class="cst-sidebar" id="cst-sidebar">
+      <div class="cst-brand">
+        <div class="cst-brand-icon" role="img" aria-label="Logo de GTC Corporation"></div>
+        <div class="cst-brand-text">
+          <strong>GTC</strong>
+          <!-- sidebar.js lo reemplaza por el nombre de quien inicio sesion.
+               El texto que queda aqui es el que se ve mientras responde
+               /api/auth/me, y el que se queda si no responde. -->
+          <span id="cst-brand-user">MONITOREO DE COSTOS</span>
+        </div>
+      </div>
+
+      <button class="cst-collapse-btn" id="cst-collapse-btn" aria-label="Colapsar menú">‹</button>
+
+      <nav class="cst-nav" aria-label="Secciones">
+        <a class="cst-nav-item is-active" href="/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+          <span>Planeación</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=indicadores">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+          <span>Indicadores - Costos</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=alertas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span>Alertas</span>
+          <span class="cst-nav-badge" id="cst-nav-alertas-badge">0</span>
+        </a>
+        <!-- Mismo nombre para los dos roles ("Costo Planeado", 31 ago 2026):
+             ver el comentario igual en costeo.html — este sidebar es el
+             mismo componente duplicado en las dos páginas. -->
+        <a class="cst-nav-item" href="/costeo?panel=centro-costos" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/></svg>
+          <span>Costo Planeado</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=centro-costos" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span>Costo Planeado</span>
+        </a>
+        <!-- Comercial va justo después de Costo Planeado para CEO y PM por
+             igual (7 sep 2026: este sidebar se había quedado con el orden
+             viejo, distinto del ya corregido en costeo.html — ver el mismo
+             comentario ahí). -->
+        <a class="cst-nav-item" href="/costeo?panel=comercial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          <span>Comercial</span>
+        </a>
+        <!-- ORDEN: tiene que ser el MISMO que en costeo.html (equipo ->
+             catálogo -> no planeado -> horas extra -> historial). Hasta el
+             16 sep 2026 estas dos páginas listaban lo mismo en distinto
+             orden, así que el menú "se movía" al pasar de un módulo al
+             otro y había que releerlo entero para encontrar la opción. -->
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=equipo-proyecto" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M17 8a3 3 0 1 1 0 6"/><path d="M17.5 14.2c2.5.5 4.5 2.6 4.5 5.8"/></svg>
+          <span>Equipo del Proyecto</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=tarifas-cargo" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13 21l-9-9V4h8l9 9a2 2 0 0 1-.41 1.41z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+          <span>Catálogo de Cargos</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=costo-no-planeado" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
+          <span>Costo No Planeado</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=horas-extra" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+          <span>Horas Extra</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=historial" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <span>Historial</span>
+        </a>
+        <!-- Aplanado igual que costeo.html (31 ago 2026), mismo orden EXACTO
+             que el del PM en los ítems que comparten (7 sep 2026) — ver el
+             mismo comentario en costeo.html. -->
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=accesos" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <span>Accesos</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=equipo-proyecto" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M17 8a3 3 0 1 1 0 6"/><path d="M17.5 14.2c2.5.5 4.5 2.6 4.5 5.8"/></svg>
+          <span>Equipo del Proyecto</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=tarifas-cargo" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13 21l-9-9V4h8l9 9a2 2 0 0 1-.41 1.41z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+          <span>Catálogo de Cargos</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=costo-no-planeado" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
+          <span>Costo No Planeado</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=horas-extra" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+          <span>Horas Extra</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=historial" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <span>Historial</span>
+        </a>
+        <a class="cst-nav-item" href="/costeo?panel=equipo-gastos&subtab=configuracion" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Configuración</span>
+        </a>
+      </nav>
+
+      <div class="cst-sidebar-footer">
+        <button class="cst-nav-item" id="cst-sidebar-logout-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span>Cerrar sesión</span>
+        </button>
+        <button class="cst-nav-item" id="cst-help-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 4"/><path d="M12 17h.01"/></svg>
+          <span>Ayuda visible</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="cst-main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <img class="brand-logo" src="/img/logo_gtc.png" alt="GTC Corporation" />
+      <h1 class="topbar-title">Planeación</h1>
+      <span class="snapshot-pill" id="snapshot-pill">snapshot: —</span>
+    </div>
+    <div class="topbar-right">
+      <div class="export-menu-wrap">
+        <button type="button" class="btn-ghost" id="export-planeacion-pdf"><span class="cst-ico" data-ico="documento"></span> PDF envío semanal</button>
+        <!-- A pedido explícito: al hacer clic no descarga directo, ofrece
+             elegir entre los datos (texto, ya existía) o los gráficos
+             (imágenes tal como se ven en pantalla, capturados con
+             exportarGraficos() en indicators.js) — ver app.js. -->
+        <div class="export-menu" id="export-planeacion-menu" role="menu" hidden>
+          <button type="button" class="export-menu-item" data-export="datos" role="menuitem">
+            <span class="export-menu-icon"><span class="cst-ico" data-ico="tabla"></span></span>
+            <span>
+              <strong>Datos</strong>
+              <small>Los 18 indicadores resumidos en texto</small>
+            </span>
+          </button>
+          <button type="button" class="export-menu-item" data-export="graficos" role="menuitem">
+            <span class="export-menu-icon"><span class="cst-ico" data-ico="imagen"></span></span>
+            <span>
+              <strong>Gráficos</strong>
+              <small>Las imágenes de los gráficos, tal como se ven</small>
+            </span>
+          </button>
+        </div>
+      </div>
+      <span class="user-pill" id="user-pill">—</span>
+      <button class="btn-ghost" id="admin-employees-btn" hidden>Gestionar empleados</button>
+      <button class="btn-ghost" id="admin-validation-btn" hidden>
+        Errores ingesta <span id="admin-validation-badge" class="pill-warn" hidden>0</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="filters-bar" aria-label="Filtros globales">
+    <label class="filter">
+      <span>Mes</span>
+      <select id="f-month"></select>
+    </label>
+    <label class="filter">
+      <span>Semana</span>
+      <select id="f-week"><option value="">Todas</option></select>
+    </label>
+    <label class="filter">
+      <span>Proyecto</span>
+      <select id="f-project"><option value="">Todos</option></select>
+    </label>
+    <label class="filter">
+      <span>Recurso</span>
+      <select id="f-employee"><option value="">Todos</option></select>
+    </label>
+    <label class="filter" id="filter-leader-wrap" hidden>
+      <span>Líder</span>
+      <select id="f-leader"><option value="">Todos</option></select>
+    </label>
+    <button class="btn-ghost" id="reset-filters">Limpiar</button>
+  </section>
+
+  <div class="scope-warn" id="scope-warn" hidden role="status" aria-live="polite">
+    <span class="scope-warn-icon" aria-hidden="true"><span class="cst-ico" data-ico="advertencia"></span></span>
+    <span class="scope-warn-msg" id="scope-warn-msg"></span>
+    <button class="btn-ghost scope-warn-btn" id="scope-warn-clear">Limpiar filtros</button>
+  </div>
+
+  <main class="grid" id="indicators-grid">
+    <!-- Fila 1: Salud general (4+4+4) -->
+    <article class="card" data-ind="9"><header><h2>Semáforo de gestión</h2><span class="badge badge-weekly-daily" title="Indicador semanal con actualización diaria"><span>Semanal</span><span>Diario</span></span><button class="info" data-tip="9" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="1"><header><h2>% Cumplimiento semanal</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="1" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="3"><header><h2>Actividades vencidas sin cerrar</h2><span class="badge badge-weekly-daily" title="Indicador semanal con actualización diaria"><span>Semanal</span><span>Diario</span></span><button class="info" data-tip="3" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+
+    <!-- Fila 2: Estado de tareas (4+4+4) -->
+    <article class="card" data-ind="6"><header><h2>% Actividades bloqueadas</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="6" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="5"><header><h2>% Actividades terminadas</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="5" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="2"><header><h2>% Entrega a tiempo</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="2" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+
+    <!-- Filas 3-4: Desfase + Reestimación (apilados, 4) || Indicador general (wide, 8, ocupa 2 filas) -->
+    <article class="card" data-ind="4"><header><h2>Días de desfase promedio</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="4" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card wide tall" data-ind="8"><header><h2>Indicador general por recurso</h2><span class="badge badge-weekly-daily" title="Indicador semanal con actualización diaria"><span>Semanal</span><span>Diario</span></span><button class="info" data-tip="8" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="12"><header><h2>Tasa de reestimación</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="12" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+
+    <!-- Fila 5: Horas + Planeación + Imprevistos (4+4+4) -->
+    <article class="card" data-ind="7"><header><h2>Horas ejecutadas vs presupuestadas</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="7" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="11"><header><h2>% Tareas no planeadas</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="11" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card" data-ind="13"><header><h2>% Imprevistos internos vs externos</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="13" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+
+    <!-- Fila 6: Recursos compartidos (full, suele estar vacío) -->
+    <article class="card full" data-ind="10"><header><h2>Recursos compartidos entre proyectos</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="10" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+
+    <!-- Filas 7 y 8: Vistas globales (12 cada una) -->
+    <article class="card full" data-ind="14"><header><h2>Carga de trabajo por recurso</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="14" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card full" data-ind="16"><header><h2>Actividad diaria por recurso</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="16" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card full" data-ind="17"><header><h2>Auditoría cambios fecha estimada</h2><span class="badge badge-daily">DIARIO</span><button class="info" data-tip="17" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card full" data-ind="18"><header><h2>Reconocimientos del mes</h2><span class="badge badge-monthly">MENSUAL</span><button class="info" data-tip="18" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+    <article class="card full" data-ind="15"><header><h2>Velocidad de cierre</h2><span class="badge badge-weekly">SEMANAL</span><button class="info" data-tip="15" aria-label="Información">i</button></header><div class="chart placeholder">Cargando…</div></article>
+  </main>
+
+  <!-- Modal de tooltip de predominancia -->
+  <div class="tooltip-popover" id="tooltip-popover" hidden role="dialog" aria-modal="false"></div>
+
+  <!-- Modal de drilldown (vacio por ahora, se usa en Bloques 2-3) -->
+  <div class="modal" id="drill-modal" hidden role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <header><h3 id="drill-title">Detalle</h3><button class="modal-close" id="drill-close" aria-label="Cerrar">×</button></header>
+      <div class="modal-body" id="drill-body"></div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <script src="/js/safe-html.js"></script>
+  <script src="/js/iconos.js"></script>
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/tooltips.js"></script>
+  <script src="/js/filters.js"></script>
+  <script src="/js/indicators.js"></script>
+  <script src="/js/employees-admin.js"></script>
+  <script src="/js/validation-admin.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

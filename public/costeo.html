@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GTC — Monitoreo de Costos</title>
+<link rel="icon" type="image/png" href="/img/favicon.png" />
+<link rel="stylesheet" href="/css/styles.css" />
+<link rel="stylesheet" href="/css/costeo.css" />
+<!-- Los Gráficos de Indicadores se dibujan con CSS (velocímetros) y SVG
+     (barras/línea) hechos a mano, sin librería externa — un CDN bloqueado
+     (red corporativa, sin internet, ad-blocker) dejaba los gráficos en
+     blanco sin ningún error visible; esto siempre renderiza. -->
+</head>
+<body>
+  <div class="cst-shell">
+    <aside class="cst-sidebar" id="cst-sidebar">
+      <div class="cst-brand">
+        <div class="cst-brand-icon" role="img" aria-label="Logo de GTC Corporation"></div>
+        <div class="cst-brand-text">
+          <strong>GTC</strong>
+          <!-- sidebar.js lo reemplaza por el nombre de quien inicio sesion.
+               El texto que queda aqui es el que se ve mientras responde
+               /api/auth/me, y el que se queda si no responde. -->
+          <span id="cst-brand-user">MONITOREO DE COSTOS</span>
+        </div>
+      </div>
+
+      <button class="cst-collapse-btn" id="cst-collapse-btn" aria-label="Colapsar menú">‹</button>
+
+      <nav class="cst-nav" aria-label="Secciones">
+        <a class="cst-nav-item" href="/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+          <span>Planeación</span>
+        </a>
+        <button class="cst-nav-item is-active" data-panel="indicadores">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+          <span>Indicadores - Costos</span>
+        </button>
+        <button class="cst-nav-item" data-panel="alertas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span>Alertas</span>
+          <span class="cst-nav-badge" id="cst-nav-alertas-badge">0</span>
+        </button>
+        <!-- Mismo nombre para los dos roles ("Costo Planeado", 31 ago 2026,
+             a pedido explícito): antes decía "Centro de Costos" para
+             admin/ceo y "Costo Planeado" para el PM siendo LA MISMA
+             pantalla — un PM que le decía a un CEO "revisa Costo
+             Planeado" y el CEO no lo encontraba en su propio menú. -->
+        <button class="cst-nav-item" data-panel="centro-costos" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/></svg>
+          <span>Costo Planeado</span>
+        </button>
+        <button class="cst-nav-item" data-panel="centro-costos" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span>Costo Planeado</span>
+        </button>
+        <!-- Comercial va justo después de Costo Planeado para CEO y PM por
+             igual (4 sep 2026, a pedido explícito): antes quedaba a mitad de
+             menú para el CEO y de último para el PM (por los botones
+             exclusivos data-pm-only/data-ceo-only que hay antes y después),
+             así que "revisa Comercial" no coincidía en la misma posición
+             cuando ambos se sentaban juntos a mirar el menú. -->
+        <button class="cst-nav-item" data-panel="comercial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+          <span>Comercial</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="equipo-proyecto" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M17 8a3 3 0 1 1 0 6"/><path d="M17.5 14.2c2.5.5 4.5 2.6 4.5 5.8"/></svg>
+          <span>Equipo del Proyecto</span>
+        </button>
+        <!-- El PM no ve la barra de sub-pestañas (applyEgRoleView la oculta),
+             así que entra al Catálogo de Cargos desde aquí. Cualquiera puede
+             crear un cargo nuevo; eliminarlo también, sin restricción de
+             centro — el catálogo es de toda la empresa. -->
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="tarifas-cargo" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13 21l-9-9V4h8l9 9a2 2 0 0 1-.41 1.41z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+          <span>Catálogo de Cargos</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="costo-no-planeado" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
+          <span>Costo No Planeado</span>
+        </button>
+        <!-- Faltaba: el panel de Horas Extra siempre existió y funciona
+             (registrada desde la plataforma, queda aprobada en el acto),
+             pero como el PM no ve la barra de sub-pestañas interna
+             (#cst-tabbar, que hasta el 11 sep 2026 era #cst-eg-subtabs y
+             vivía dentro del panel), nunca tuvo
+             cómo llegar hasta acá. -->
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="horas-extra" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+          <span>Horas Extra</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="historial" data-pm-only hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <span>Historial</span>
+        </button>
+        <!-- Menú del admin/ceo aplanado igual que el del PM (31 ago 2026, a
+             pedido explícito): antes era UN solo botón ("Equipo y Gastos ·
+             Edición") con 7 pestañas adentro — dos clics para llegar a algo
+             que el PM alcanza con uno. Mismo orden EXACTO que el del PM en
+             los ítems que comparten (7 sep 2026, reordenado de nuevo el 9
+             sep 2026, los dos a pedido explícito: el CEO y el PM tienen que
+             ver las cosas en el mismo lugar cuando se sientan juntos a mirar
+             el menú) — Equipo del Proyecto, Catálogo de Cargos, Costo No
+             Planeado, Horas Extra, Historial, igual que arriba en el bloque
+             data-pm-only. Accesos y Configuración son las únicas dos que el
+             PM no tiene (exclusivas de admin/ceo, ver applyEgRoleView);
+             quedan de primera y de última porque no hay una posición del PM
+             con la que deban coincidir. -->
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="accesos" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <span>Accesos</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="equipo-proyecto" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"/><path d="M17 8a3 3 0 1 1 0 6"/><path d="M17.5 14.2c2.5.5 4.5 2.6 4.5 5.8"/></svg>
+          <span>Equipo del Proyecto</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="tarifas-cargo" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41 13 21l-9-9V4h8l9 9a2 2 0 0 1-.41 1.41z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+          <span>Catálogo de Cargos</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="costo-no-planeado" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1Z"/><path d="M9 8h6M9 12h6"/></svg>
+          <span>Costo No Planeado</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="horas-extra" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+          <span>Horas Extra</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="historial" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <span>Historial</span>
+        </button>
+        <button class="cst-nav-item" data-panel="equipo-gastos" data-subtab="configuracion" data-ceo-only>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Configuración</span>
+        </button>
+      </nav>
+
+      <div class="cst-sidebar-footer">
+        <button class="cst-nav-item" id="cst-sidebar-logout-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span>Cerrar sesión</span>
+        </button>
+        <button class="cst-nav-item" id="cst-help-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 4"/><path d="M12 17h.01"/></svg>
+          <span>Ayuda visible</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="cst-main">
+      <header class="cst-header">
+        <div class="cst-header-left">
+          <img class="brand-logo" src="/img/logo_gtc.png" alt="GTC Corporation" />
+          <!-- El selector de proyecto vive en el encabezado (10 sep 2026, a
+               pedido explícito) para que esté a la vista en todas las
+               pantallas, no solo en las que lo mostraban antes. Conserva el
+               id cst-f-centro: es el filtro global que ya leen Indicadores,
+               Alertas, Costo Planeado, Equipo, Horas Extra y Comercial. -->
+          <label class="filter cst-header-filter" id="cst-filter-centro-wrap">
+            <span>Proyecto</span>
+            <select id="cst-f-centro"><option value="">Todos los proyectos</option></select>
+          </label>
+        </div>
+        <div class="cst-header-right">
+          <div class="cst-kpi-pill">
+            <span class="cst-kpi-label">Presupuesto total</span>
+            <span class="cst-kpi-value" id="cst-kpi-presupuesto">—</span>
+          </div>
+          <div class="cst-kpi-pill">
+            <span class="cst-kpi-label">Ejecutado</span>
+            <span class="cst-kpi-value" id="cst-kpi-ejecutado">—</span>
+          </div>
+          <div class="cst-kpi-pill is-danger">
+            <span class="cst-kpi-label">Alertas abiertas</span>
+            <span class="cst-kpi-value" id="cst-kpi-alertas">—</span>
+          </div>
+          <div class="cst-kpi-pill is-danger">
+            <span class="cst-kpi-label">En riesgo</span>
+            <span class="cst-kpi-value" id="cst-kpi-riesgo">—</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="cst-filters" aria-label="Filtros de Costeo">
+        <label class="filter" id="cst-filter-recurso-wrap">
+          <span>Recurso</span>
+          <select id="cst-f-recurso"><option value="">Todos</option></select>
+        </label>
+      </section>
+
+      <main class="cst-content">
+        <!-- Barra de pestañas GLOBAL (11 sep 2026, a pedido explícito). Antes
+             vivía dentro del panel "Equipo y Gastos" (#cst-eg-subtabs) y solo
+             listaba sus 7 sub-pestañas, así que en Indicadores, Alertas, Costo
+             Planeado y Comercial no había ninguna: la única forma de moverse
+             era el menú lateral. Ahora vive fuera de los paneles — se ve en
+             todas las pantallas — y arranca con esos 4, en el MISMO orden del
+             menú lateral, para que "está en la tercera" signifique lo mismo
+             mirando el menú o mirando las pestañas.
+
+             data-panel = pantalla propia; data-subtab = sub-pestaña de Equipo
+             y Gastos. Los dos tipos los engancha initEgSubtabs()
+             (costeo-accesos.js), que es también quien marca cuál está activa.
+             Accesos y Configuración son exclusivas de admin/ceo: a un PM se
+             las esconde applyEgRoleView(), igual que sus botones del menú. -->
+        <nav class="cst-tabs cst-tabbar" role="tablist" id="cst-tabbar">
+          <button class="cst-tab is-active" data-panel="indicadores"><span class="cst-ico" data-ico="indicadores"></span> Indicadores - Costos</button>
+          <button class="cst-tab" data-panel="alertas"><span class="cst-ico" data-ico="alertas"></span> Alertas</button>
+          <button class="cst-tab" data-panel="centro-costos"><span class="cst-ico" data-ico="caja"></span> Costo Planeado</button>
+          <button class="cst-tab" data-panel="comercial"><span class="cst-ico" data-ico="comercial"></span> Comercial</button>
+          <button class="cst-tab" data-subtab="accesos" data-ceo-only><span class="cst-ico" data-ico="candado"></span> Accesos</button>
+          <button class="cst-tab" data-subtab="equipo-proyecto"><span class="cst-ico" data-ico="persona"></span> Equipo del Proyecto</button>
+          <button class="cst-tab" data-subtab="tarifas-cargo"><span class="cst-ico" data-ico="etiqueta"></span> Catálogo de Cargos</button>
+          <button class="cst-tab" data-subtab="costo-no-planeado"><span class="cst-ico" data-ico="recibo"></span> Costo No Planeado</button>
+          <button class="cst-tab" data-subtab="horas-extra"><span class="cst-ico" data-ico="cronometro"></span> Horas Extra</button>
+          <button class="cst-tab" data-subtab="historial"><span class="cst-ico" data-ico="reloj"></span> Historial</button>
+          <button class="cst-tab" data-subtab="configuracion" data-ceo-only><span class="cst-ico" data-ico="engranaje"></span> Configuración</button>
+        </nav>
+
+        <!-- Panel: Indicadores -->
+        <section class="cst-panel" id="cst-panel-indicadores">
+          <div class="cst-module-card cst-module-card-panel">
+    <div class="cst-module-head">
+            <span class="cst-module-icon"><span class="cst-ico" data-ico="indicadores"></span></span>
+            <div>
+              <span class="cst-module-eyebrow">Indicadores - Costos</span>
+              <h3>Catálogo, comparativo y gráficos</h3>
+            </div>
+            <!-- Los botones de exportar estaban en el banner que se quitó el
+                 10 sep 2026; pasan a la cabecera, igual que los de Equipo
+                 del Proyecto y Costo No Planeado. -->
+            <div class="cst-module-head-actions">
+              <button type="button" class="btn-export btn-export-pdf" id="cst-export-pdf"><span class="cst-ico" data-ico="descargar"></span> Descargar PDF</button>
+              <button type="button" class="btn-export btn-export-xlsx" id="cst-export-xlsx"><span class="cst-ico" data-ico="tabla"></span> Descargar Excel</button>
+            </div>
+          </div>
+            <div class="cst-module-body">
+
+              <!-- Periodo vive acá, al lado de "Gráficos" (11 sep 2026, a pedido
+                   explícito). Está FUERA de las tres vistas a propósito: recorta
+                   los datos de las tres por igual, no solo los del catálogo.
+                   Indicadores es hoy la única pantalla que consume este filtro;
+                   conserva sus ids (cst-f-periodo / cst-filter-periodo-wrap) para
+                   que filtrosQuery(), initFiltrosPeriodoRecurso() y
+                   aplicarVisibilidadFiltros() lo sigan encontrando igual. -->
+              <div class="cst-ind-tabsrow">
+                <nav class="cst-tabs" role="tablist" id="cst-ind-tabs">
+                  <button class="cst-tab is-active" data-view="catalogo">Catálogo de Indicadores</button>
+                  <button class="cst-tab" data-view="comparativo">Panel Comparativo</button>
+                  <button class="cst-tab" data-view="graficos">Gráficos</button>
+                </nav>
+                <label class="filter" id="cst-filter-periodo-wrap">
+                  <span>Periodo</span>
+                  <select id="cst-f-periodo"><option value="">Todo</option></select>
+                </label>
+              </div>
+
+              <!-- Vista: Catálogo de Indicadores (por defecto) -->
+              <div class="cst-ind-view" id="cst-ind-view-catalogo">
+              <div class="cst-legend-bar">
+                <span><strong>Ejecutado/presupuesto</strong> = cuánta plata se ha gastado del total autorizado</span>
+                <span><strong>En riesgo</strong> = proyectos que se quedarían sin plata antes de terminar</span>
+              </div>
+
+              <div class="cst-summary-grid" id="cst-indicadores-summary">
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Ejecutado / Presupuesto total
+                    <span class="cst-ind-help" tabindex="0" role="note" aria-label="Cuánta plata se ha gastado del total autorizado, sumando todos los proyectos activos que ves en pantalla.">
+                      ?
+                      <span class="cst-ind-tooltip">Cuánta plata se ha gastado del total autorizado, sumando todos los proyectos activos que ves en pantalla. Si pasa de 100%, ya se gastó más de lo presupuestado. Si un proyecto todavía no tiene presupuesto cargado, el % puede salir enorme o sin sentido — no es un error, es que falta ese dato.</span>
+                    </span>
+                  </p>
+                  <div class="cst-summary-value" id="cst-sum-ejecutado-pct">—</div>
+                  <p class="cst-summary-sub" id="cst-sum-ejecutado-sub">Sin datos aún</p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Proyectos en riesgo de quedarse sin presupuesto
+                    <span class="cst-ind-help" tabindex="0" role="note" aria-label="Cuántos proyectos, al ritmo de gasto actual, se quedarían sin presupuesto antes de llegar a su fecha fin planeada.">
+                      ?
+                      <span class="cst-ind-tooltip">Cuántos proyectos, al ritmo de gasto actual, se quedarían sin presupuesto antes de llegar a su fecha fin planeada (indicador #4 de cada proyecto).</span>
+                    </span>
+                  </p>
+                  <div class="cst-summary-value" id="cst-sum-riesgo">—</div>
+                  <p class="cst-summary-sub" id="cst-sum-riesgo-sub">Sin datos aún</p>
+                </div>
+              </div>
+
+              <div class="cst-section-head">
+                <div>
+                  <h3>Indicadores — cálculo en vivo sobre tus datos</h3>
+                  <p>No es un catálogo de referencia — es la salida real del motor de cálculo, leída directo de Costo Planeado y Costo No Planeado.</p>
+                </div>
+                <span class="cst-live-pill"><span class="cst-live-dot"></span> conectado al motor de cálculo</span>
+              </div>
+
+              <div class="cst-indicators-grid" id="cst-indicators-grid">
+                <!-- Generado por costeo.js: costo-motor.js ya calcula 4 de los 17 -->
+              </div>
+
+              <div class="cst-section-head">
+                <div>
+                  <h3>Histórico de snapshots</h3>
+                  <p>Guarda una fotografía fija de los indicadores para comparar la evolución del proyecto más adelante — un snapshot no cambia aunque el motor recalcule después.</p>
+                </div>
+                <button type="button" class="btn-export btn-export-snapshot" id="cst-snapshot-save"><span class="cst-ico" data-ico="camara"></span> Guardar snapshot</button>
+              </div>
+
+              <!-- Selección múltiple para borrar varios snapshots de una vez (8
+                   sep 2026, a pedido explícito: antes solo se podía eliminar uno
+                   por uno). Arranca oculta — solo aparece con al menos un
+                   snapshot seleccionado. -->
+              <div class="cst-snapshot-bulkbar" id="cst-snapshot-bulkbar" hidden>
+                <label class="cst-snapshot-select-all">
+                  <input type="checkbox" id="cst-snapshot-select-all" />
+                  <span>Seleccionar todos</span>
+                </label>
+                <span class="cst-snapshot-bulk-count" id="cst-snapshot-bulk-count">0 seleccionados</span>
+                <button type="button" class="btn-ghost cst-snapshot-bulk-delete" id="cst-snapshot-bulk-delete"><span class="cst-ico" data-ico="basura"></span> Eliminar seleccionados</button>
+              </div>
+
+              <div class="cst-snapshot-list" id="cst-snapshot-list">
+                <!-- Generado por costeo.js -->
+              </div>
+              </div>
+              <!-- /Vista: Catálogo de Indicadores -->
+
+              <!-- Vista: Panel Comparativo — costo laboral y horas extra semana a
+                   semana del proyecto elegido en el filtro "Centro de Costos" de
+                   arriba (o del portafolio si no hay ninguno elegido). Mismos
+                   datos que ya usan los indicadores #5/#16/#17, expuestos como
+                   serie en vez de un solo número (ver serie_semanal en
+                   src/queries/costo-indicadores-17.js). El contenido real lo
+                   arma renderComparativo() en costeo-indicadores.js. -->
+              <div class="cst-ind-view" id="cst-ind-view-comparativo" hidden>
+                <div class="cst-section-head">
+                  <div>
+                    <h3>Comparativo semana a semana</h3>
+                    <p id="cst-comp-subtitulo">Costo laboral y horas extra por semana, para ver si el proyecto va acelerando o desacelerando.</p>
+                  </div>
+                </div>
+
+                <div class="cst-comp-kpis" id="cst-comp-kpis"></div>
+
+                <div class="cst-comp-charts-grid">
+                  <div class="cst-graf-card">
+                    <h4>Costo laboral por semana</h4>
+                    <div class="cst-graf-svg-wrap" id="cst-comp-svg-linea"></div>
+                  </div>
+
+                  <div class="cst-graf-card">
+                    <h4>Horas extra por semana</h4>
+                    <div class="cst-graf-svg-wrap" id="cst-comp-svg-barras"></div>
+                  </div>
+                </div>
+
+                <div class="cst-graf-card cst-comp-table-card">
+                  <h4>Detalle semana a semana</h4>
+                  <div class="cst-comp-table-wrap">
+                    <table class="emp-table cst-comp-table" id="cst-comp-table">
+                      <thead>
+                        <tr><th>Semana</th><th>Costo laboral</th><th>Variación</th><th>Horas extra</th></tr>
+                      </thead>
+                      <tbody id="cst-comp-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <!-- /Vista: Panel Comparativo -->
+
+              <!-- Vista: Gráficos — un gráfico DE VERDAD por cada uno de los 17
+                   indicadores, hecho con CSS (velocímetro) y SVG (barras/línea)
+                   en vez de una librería externa: ECharts por CDN se quedaba en
+                   blanco sin ningún error si la red bloqueaba el script (caso
+                   real reportado). Los 10 que son porcentaje llevan velocímetro;
+                   los que no tienen 0-100% natural (dinero, conteos) se comparan
+                   en una barra contra los demás proyectos — sigue siendo un
+                   gráfico real, no un número suelto. El contenido lo arma
+                   renderGraficos() en costeo-indicadores.js. -->
+              <div class="cst-ind-view" id="cst-ind-view-graficos" hidden>
+                <div class="cst-section-head">
+                  <div>
+                    <h3>Los indicadores, en gráficos</h3>
+                    <p id="cst-graf-subtitulo">Un gráfico por indicador, con el mismo número que ya ves en el Catálogo.</p>
+                  </div>
+                </div>
+                <div class="cst-graf-grid" id="cst-graf-grid"></div>
+
+                <div class="cst-graf-card cst-graf-card-wide cst-graf-semanal-card">
+                  <h4>Costo laboral semanal (últimas semanas con datos)</h4>
+                  <div class="cst-graf-svg-wrap" id="cst-graf-semanal"></div>
+                </div>
+              </div>
+              <!-- /Vista: Gráficos -->
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Panel: Alertas -->
+        <section class="cst-panel" id="cst-panel-alertas" hidden>
+          <div class="cst-module-card cst-module-card-panel">
+    <div class="cst-module-head cst-module-head-red">
+            <span class="cst-module-icon"><span class="cst-ico" data-ico="campana"></span></span>
+            <div>
+              <span class="cst-module-eyebrow">Alertas</span>
+              <h3>Hallazgos del motor de reglas</h3>
+            </div>
+          </div>
+            <div class="cst-module-body">
+
+              <!-- La tarjeta de resumen "CRÍTICAS / N / requieren acción hoy"
+                   se quitó el 10 sep 2026 a pedido explícito: repetía el KPI
+                   "En riesgo" del encabezado y la pestaña Críticas ya lleva
+                   a esa misma lista. ("NOTIFICACIONES AL ADMIN" se había ido
+                   antes, el 4 sep 2026, porque siempre mostraba 0.) -->
+              <!-- Escalamiento (a pedido explícito, 1 sep 2026): alertas que
+                   llevan 3+ días sin corregirse. Hasta el 10 sep 2026 vivían
+                   en un bloque aparte encima de esta barra, lo que partía la
+                   pantalla en dos listas de alertas; ahora son una pestaña
+                   más, porque son las MISMAS alertas de la grilla, solo que
+                   filtradas por antigüedad (ver el encabezado de
+                   costo-alertas-eventos.js). -->
+              <nav class="cst-tabs" role="tablist" id="cst-alertas-filtros">
+                <button class="cst-tab is-active" data-sev="todas">Todas</button>
+                <button class="cst-tab" data-sev="sin-corregir"><span class="cst-ico" data-ico="advertencia"></span> Alertas sin corregir<span class="cst-tab-count" id="cst-alertas-sin-corregir-count" hidden></span></button>
+                <button class="cst-tab" data-sev="critica"><span class="cst-sev-dot sev-critica"></span>Críticas</button>
+                <button class="cst-tab" data-sev="alta"><span class="cst-sev-dot sev-alta"></span>Atención</button>
+                <button class="cst-tab" data-sev="media"><span class="cst-sev-dot sev-media"></span>Media</button>
+                <button class="cst-tab" data-sev="baja"><span class="cst-sev-dot sev-baja"></span>Info</button>
+              </nav>
+
+              <div class="cst-alertas-grid" id="cst-alertas-grid"></div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Panel: Centro de Costos -->
+        <section class="cst-panel" id="cst-panel-centro-costos" hidden>
+          <div class="cst-module-card cst-module-card-panel">
+    <div class="cst-module-head">
+            <span class="cst-module-icon"><span class="cst-ico" data-ico="caja"></span></span>
+            <div>
+              <span class="cst-module-eyebrow">Costo planeado</span>
+              <h3>Centros de costos y su presupuesto</h3>
+            </div>
+            <!-- Antes vivía en el encabezado fijo de arriba, junto a los KPIs
+                 (11 sep 2026 en adelante) — visible en TODAS las pantallas
+                 aunque solo tuviera sentido en esta. Se mueve a la banda de
+                 su propio panel (14 sep 2026, a pedido explícito), mismo
+                 patrón que "+ Crear acceso" en Accesos: un botón suelto
+                 dentro de .cst-module-head, que ya va pegado al borde
+                 derecho. isAdmin sigue ocultándolo a un leader (ver
+                 costeo-indicadores.js) — solo cambió DÓNDE vive, no quién lo
+                 ve. -->
+            <button class="cst-btn-new" id="cst-btn-nuevo-centro" data-modal-abrir="cst-centro-modal-overlay">+ Nuevo centro</button>
+          </div>
+            <div class="cst-module-body">
+
+              <div class="cst-summary-grid">
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Presupuesto Total Activo</p>
+                  <div class="cst-summary-value" id="cst-cc-presupuesto">—</div>
+                  <p class="cst-summary-sub" id="cst-cc-presupuesto-sub"></p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Ejecutado a la Fecha</p>
+                  <div class="cst-summary-value" id="cst-cc-ejecutado">—</div>
+                  <p class="cst-summary-sub" id="cst-cc-ejecutado-sub"></p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Centros de Costos Activos</p>
+                  <div class="cst-summary-value" id="cst-cc-activos">—</div>
+                  <p class="cst-summary-sub" id="cst-cc-activos-sub"></p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Alertas Abiertas</p>
+                  <div class="cst-summary-value" id="cst-cc-alertas">—</div>
+                  <p class="cst-summary-sub" id="cst-cc-alertas-sub"></p>
+                </div>
+              </div>
+
+          
+            </div>
+          </div>
+
+          <div class="cst-confirm-overlay" id="cst-centro-modal-overlay" data-modal hidden>
+          <div class="cst-modal-box">
+          <div class="cst-modal-head">
+            <h4>Nuevo centro de costos</h4>
+            <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+          </div>
+          <form class="emp-form" id="cst-form-centro">
+            <!-- Campo de texto libre, no obligado a coincidir con un proyecto
+                 de Planeación: el backend detecta solo si cruza con el RPA
+                 (origin='planeacion') o no (origin='manual', ej. Management,
+                 Talento Humano). La lista de abajo es solo una ayuda de
+                 autocompletado, no restringe lo que se puede escribir. -->
+            <label>
+              <span>Proyecto</span>
+              <input type="text" id="cst-centro-project-folder" list="cst-centro-project-folder-list" required placeholder="Nombre del proyecto o carpeta" />
+              <datalist id="cst-centro-project-folder-list"></datalist>
+            </label>
+            <label>
+              <span>Nombre comercial</span>
+              <input type="text" id="cst-centro-project-name" required />
+            </label>
+            <label>
+              <span>Tipo</span>
+              <select id="cst-centro-tipo">
+                <option value="Desarrollo">Desarrollo</option>
+                <option value="Consultoria">Consultoría</option>
+                <option value="Soporte">Soporte</option>
+                <option value="Overhead">Overhead</option>
+              </select>
+            </label>
+            <label>
+              <span>Cliente</span>
+              <input type="text" id="cst-centro-client-name" placeholder="GTC Interno si no factura a externo" />
+            </label>
+            <label>
+              <span>Presupuesto (COP)</span>
+              <input type="number" id="cst-centro-budget" min="0" step="1" required />
+            </label>
+            <label>
+              <span>Valor del contrato (COP) — opcional, 0 si es interno</span>
+              <input type="number" id="cst-centro-contract-value" min="0" step="1" />
+            </label>
+            <label>
+              <span>Fecha de inicio</span>
+              <input type="date" id="cst-centro-start-date" required />
+            </label>
+            <label>
+              <span>Fecha fin planeada</span>
+              <input type="date" id="cst-centro-planned-end-date" required />
+            </label>
+            <p class="emp-form-error" id="cst-centro-error" hidden></p>
+            <div class="emp-form-actions cst-cc-edit-actions">
+              <button type="button" class="cst-confirm-cancel" id="cst-centro-cancel" data-modal-cerrar>Cancelar</button>
+              <button type="submit" class="btn-primary">Crear centro</button>
+            </div>
+          </form>
+          </div>
+          </div>
+
+          <div class="cst-section-head">
+            <h3>Proyectos registrados</h3>
+            <span class="cst-live-pill"><span class="cst-live-dot"></span> en vivo</span>
+          </div>
+          <p class="cst-cc-legend">
+            <span>● Activo = en ejecución</span>
+            <span>● Inactivo = cerrado o pausado</span>
+            <span>Ejecución = % del presupuesto ya gastado (barra roja si pasa de 85%)</span>
+            <span>Da clic en <strong>Editar</strong> para cambiar cualquier dato, incluido el estado</span>
+          </p>
+
+          <div class="cst-cc-grid" id="cst-cc-grid"></div>
+
+          <!-- Historial de cambios de UN proyecto (7 sep 2026, a pedido
+               explícito del dueño de la empresa): el rastro completo de qué
+               se cambió, cuándo y quién — con el antes y el después de cada
+               valor. Se abre desde el botón "Ver cambios" de cada tarjeta. -->
+          <div class="cst-confirm-overlay" id="cst-cambios-modal-overlay" data-modal hidden>
+            <div class="cst-modal-box cst-cambios-box">
+              <div class="cst-modal-head">
+                <h4>Historial de cambios · <span id="cst-cambios-proyecto">—</span></h4>
+                <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+              </div>
+              <div class="cst-cambios-body" id="cst-cambios-body"></div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Panel: Comercial -->
+        <section class="cst-panel" id="cst-panel-comercial" hidden>
+          <div class="cst-module-card cst-module-card-panel">
+    <div class="cst-module-head">
+            <span class="cst-module-icon"><span class="cst-ico" data-ico="comercial"></span></span>
+            <div>
+              <span class="cst-module-eyebrow">Comercial</span>
+              <h3>Utilidad y ejecución presupuestal</h3>
+            </div>
+          </div>
+            <div class="cst-module-body">
+
+              <div class="cst-section-head">
+                <h3>Estado real de los proyectos</h3>
+                <span class="cst-live-pill"><span class="cst-live-dot"></span> datos reales</span>
+              </div>
+              <div class="cst-summary-grid">
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Costo estimado del portafolio</p>
+                  <div class="cst-summary-value" id="cst-com-costo-total">—</div>
+                  <p class="cst-summary-sub" id="cst-com-costo-sub">Sin datos aún</p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Dentro de presupuesto</p>
+                  <div class="cst-summary-value cst-value-green" id="cst-com-viables">—</div>
+                  <p class="cst-summary-sub">0 – 70% comprometido: hay margen</p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">En riesgo</p>
+                  <div class="cst-summary-value cst-value-orange" id="cst-com-riesgo">—</div>
+                  <p class="cst-summary-sub">71 – 90% comprometido: conviene revisarlo</p>
+                </div>
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Sobre ejecutado</p>
+                  <div class="cst-summary-value cst-value-red" id="cst-com-no-viables">—</div>
+                  <p class="cst-summary-sub">91% o más comprometido, incluye los que ya pasaron del 100%</p>
+                </div>
+                <!-- Quinta tarjeta (11 sep 2026, a pedido explícito): sin ella
+                     las cuatro de estado sumaban 11 de 12 proyectos y el que
+                     faltaba — el que no tiene presupuesto puesto — no
+                     aparecía en ninguna parte de esta fila. -->
+                <div class="cst-summary-card">
+                  <p class="cst-summary-label">Sin presupuesto</p>
+                  <div class="cst-summary-value" id="cst-com-sin-presupuesto">—</div>
+                  <p class="cst-summary-sub">no hay contra qué comparar hasta que se registre</p>
+                </div>
+              </div>
+
+              <div class="cst-module-card">
+                <div class="cst-module-body">
+                  <h3 class="cst-com-tabla-title">Ranking de proyectos</h3>
+                  <p class="cst-module-desc">Los 3 proyectos a los que más presupuesto les queda y los 3 que más llevan gastado del suyo, de un vistazo — antes de leer toda la tabla de abajo.</p>
+                  <div class="cst-com-ranking-grid">
+                    <div class="cst-com-ranking-col">
+                      <h4 class="cst-com-ranking-titulo"><span class="cst-ico" data-ico="trofeo"></span> Más presupuesto disponible</h4>
+                      <ol class="cst-com-ranking-lista" id="cst-com-ranking-top"></ol>
+                    </div>
+                    <div class="cst-com-ranking-col">
+                      <h4 class="cst-com-ranking-titulo"><span class="cst-ico" data-ico="advertencia"></span> Más presupuesto consumido</h4>
+                      <ol class="cst-com-ranking-lista" id="cst-com-ranking-bottom"></ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cst-module-card cst-com-simulador">
+                <div class="cst-module-head cst-module-head-sim">
+                  <span class="cst-module-icon"><span class="cst-ico" data-ico="matraz"></span></span>
+                  <div>
+                    <span class="cst-module-eyebrow">Escenario interactivo</span>
+                    <h3>Simulador de recursos — "¿qué pasa si...?"</h3>
+                  </div>
+                  <span class="cst-badge-escenario">ESCENARIO, NO SE GUARDA</span>
+                </div>
+                <div class="cst-module-body">
+                  <p class="cst-module-desc">Elige un proyecto, agrega o quita filas de cargo + persona real (su costo/hora sale de su salario, no se teclea), define sus horas planeadas, mueve presupuesto/contrato/horas restantes, y mira cómo se mueve la proyección al instante. No toca los datos reales — y si decides contratar de verdad, "+ Agregar al equipo" te lleva directo al formulario.</p>
+                  <label class="cst-sim-proyecto-select">
+                    <span>Proyecto a simular</span>
+                    <select id="cst-sim-proyecto"><option value="">Selecciona un centro de costos…</option></select>
+                  </label>
+                  <div class="cst-com-simulador-body" id="cst-com-simulador-body">
+                    <p class="emp-muted">Selecciona un Centro de Costos en el filtro de arriba para simular.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Análisis con IA — pausado a pedido (24 ago 2026): no se va a
+                   construir por ahora, se retoma más adelante. Se deja comentado
+                   en vez de borrado para no perder el markup cuando se conecte
+                   a un modelo real. Los listeners de estos botones también
+                   están comentados en initComercial() (public/js/costeo.js) —
+                   sin eso, addEventListener sobre estos ids (ahora inexistentes
+                   en el DOM) rompería el resto del arranque de la página.
+              <div class="cst-com-ia">
+                <div class="cst-com-ia-head">
+                  <div>
+                    <h3>Análisis con IA</h3>
+                    <p>Lee el estado de un proyecto y propone jugadas — opcional, complementa (no reemplaza) el diagnóstico automático de abajo.</p>
+                  </div>
+                  <button type="button" class="btn-ghost cst-com-ia-ajustes" id="cst-com-ia-ajustes">Ajustes</button>
+                </div>
+                <div class="cst-com-ia-msg" id="cst-com-ia-msg">Selecciona un Centro de Costos en el filtro de arriba, y da clic en "Analizar proyecto".</div>
+                <textarea class="cst-com-ia-pregunta" id="cst-com-ia-pregunta" placeholder='Pregunta opcional. Ej: ¿cómo recorto 15% del presupuesto sin sacar a nadie del equipo?'></textarea>
+                <button type="button" class="btn-primary cst-com-ia-btn" id="cst-com-ia-analizar">Analizar proyecto</button>
+              </div>
+              -->
+
+              <!-- Esta tarjeta anunciaba su contenido con un <h3> suelto dentro
+                   del cuerpo, no con la banda azul del resto (11 sep 2026, a
+                   pedido explícito: que lleve encabezado como todas). -->
+              <div class="cst-module-card">
+                <div class="cst-module-head">
+                  <span class="cst-module-icon"><span class="cst-ico" data-ico="brujula"></span></span>
+                  <div>
+                    <span class="cst-module-eyebrow">Comercial</span>
+                    <h3>Ejecución presupuestal por proyecto</h3>
+                  </div>
+                </div>
+                <div class="cst-module-body">
+                  <p class="cst-module-desc">Da clic en ⓘ para ver el diagnóstico completo de cada proyecto.</p>
+                  <table class="emp-table" id="cst-com-table">
+                    <thead>
+                      <tr>
+                        <th>Proyecto</th>
+                        <th>Presupuesto</th>
+                        <th>Costo estimado</th>
+                        <th>Ejecución</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cst-com-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Panel: Equipo y Gastos · Edición -->
+        <section class="cst-panel" id="cst-panel-equipo-gastos" hidden>
+          <!-- Sub-pestaña: Accesos (Gestión de PMs) -->
+          <div class="cst-subpanel" id="cst-subpanel-accesos">
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="candado"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Accesos</span>
+                  <h3>Gestión de PMs</h3>
+                </div>
+                <button type="button" class="cst-btn-new" data-modal-abrir="cst-acceso-modal-overlay">+ Crear acceso</button>
+              </div>
+              <div class="cst-module-body">
+                <div class="cst-confirm-overlay" id="cst-acceso-modal-overlay" data-modal hidden>
+                  <div class="cst-modal-box">
+                    <div class="cst-modal-head">
+                      <h4>Crear acceso de PM</h4>
+                      <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+                    </div>
+                    <form class="cst-cc-edit-form cst-acceso-form" id="cst-form-acceso">
+                      <label><span>Nombre</span><input type="text" id="cst-acceso-nombre" placeholder="Ej: Sara Ibarra" required /></label>
+                      <label><span>Usuario</span><input type="text" id="cst-acceso-username" placeholder="sara.ibarra" pattern="[a-z0-9._-]{3,50}" title="Letras, números, puntos, guiones y guion bajo (mínimo 3 caracteres)" /></label>
+                      <label><span>Contraseña</span><input type="password" id="cst-acceso-password" minlength="8" placeholder="Se genera o la defines tú" required /></label>
+                      <label><span>Correo</span><input type="email" id="cst-acceso-email" placeholder="usuario@empresa.com" required /></label>
+                      <label class="cst-acceso-centro-field">
+                        <span>Centro(s) de Costos</span>
+                        <div class="cst-multiselect" id="cst-acceso-centro"></div>
+                        <small class="cst-field-hint">Escribe para buscar y da clic para agregar. Vacío = sin asignar todavía.</small>
+                      </label>
+                      <p class="emp-form-error" id="cst-acceso-error" hidden></p>
+                      <div class="cst-cc-edit-actions">
+                        <button type="button" class="cst-confirm-cancel" data-modal-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-primary">Crear acceso</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <table class="emp-table" id="cst-accesos-table">
+                  <thead><tr><th>Nombre</th><th>Usuario</th><th>Contraseña</th><th>Correo</th><th>Centro de Costos</th><th>Estado</th><th></th></tr></thead>
+                  <tbody id="cst-accesos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Equipo y Costos -->
+          <!-- Sub-pestaña: Equipo del Proyecto -->
+          <div class="cst-subpanel" id="cst-subpanel-equipo-proyecto" hidden>
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="persona"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Equipo del proyecto</span>
+                  <h3>Personas y costo/hora</h3>
+                </div>
+                <!-- Dos botones con función propia en vez de uno solo que
+                     escondía un interruptor adentro (a pedido explícito: no
+                     quedaba claro que "+ Agregar persona" servía tanto para
+                     alguien nuevo como para alguien que ya existe en otro
+                     proyecto). Los dos abren el mismo modal — ver
+                     abrirEquipoModal(modo) en costeo-equipo.js — solo que ya
+                     arrancan en el modo correcto. -->
+                <div class="cst-module-head-actions">
+                  <button type="button" class="cst-btn-new" data-equipo-abrir-modal="existente">+ Agregar persona a un proyecto</button>
+                  <button type="button" class="cst-btn-new" data-equipo-abrir-modal="nueva">+ Agregar persona nueva</button>
+                </div>
+              </div>
+              <div class="cst-module-body">
+                <div class="cst-confirm-overlay" id="cst-equipo-modal-overlay" data-modal hidden>
+                  <div class="cst-modal-box">
+                    <div class="cst-modal-head">
+                      <h4 id="cst-equipo-modal-titulo">Agregar persona al equipo</h4>
+                      <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+                    </div>
+                    <p class="cst-modal-hint" id="cst-equipo-modal-hint">
+                      Elige un talento que ya existe — si trabaja en otro proyecto, su salario se autocompleta solo.
+                    </p>
+                    <form class="cst-cc-edit-form cst-acceso-form" id="cst-form-equipo">
+                      <div class="cst-equipo-talento-field">
+                        <label><span>Talento</span><select id="cst-equipo-employee"></select></label>
+                      </div>
+                      <!-- Escape hatch: por si alguien abrió el modal
+                           equivocado, sin tener que cerrarlo y volver a
+                           abrir el otro botón. -->
+                      <button type="button" class="cst-equipo-toggle-nueva" id="cst-equipo-toggle-nueva">Prefiero crear una persona nueva</button>
+                      <div class="cst-equipo-nueva-persona" id="cst-equipo-nueva-persona" hidden>
+                        <label><span>Nombre completo</span><input type="text" id="cst-equipo-nueva-nombre" placeholder="Ej. Camila Restrepo" maxlength="150" /></label>
+                        <label class="cst-equipo-nueva-activo"><input type="checkbox" id="cst-equipo-nueva-activo" checked /><span>Activo</span></label>
+                        <button type="button" class="cst-equipo-cancelar-nueva" id="cst-equipo-cancelar-nueva">Prefiero elegir un talento existente</button>
+                      </div>
+                      <label>
+                        <span>Cargo en el proyecto</span>
+                        <!-- El catálogo ya no es una lista fija: se llena en vivo
+                             desde state.tarifasCargo (ver populateEquipoRoleSelect
+                             en costeo-equipo.js). Si el cargo que necesitas no
+                             aparece, créalo primero en el Catálogo de Cargos. -->
+                        <select id="cst-equipo-role" required>
+                          <option value="">Ninguno</option>
+                        </select>
+                      </label>
+                      <!-- Fórmula de GTC (sql/33): se escribe el salario y el
+                           valor hora sale solo (salario ÷ horas/mes). El
+                           costo/hora queda de solo lectura mientras haya
+                           salario, para que no puedan quedar dos cifras que no
+                           cuadran entre sí. Si la persona no tiene salario
+                           mensual (contrato por horas, prestación de
+                           servicios), se deja el salario vacío y el costo/hora
+                           se escribe a mano como siempre. -->
+                      <label>
+                        <span>Salario mensual (COP)</span>
+                        <input type="text" inputmode="numeric" id="cst-equipo-salario" placeholder="Ej. 1.750.950" />
+                      </label>
+                      <!-- Se muestra solo cuando el talento elegido YA tiene salario
+                           asignado en otro proyecto (ver initEquipoGastoForms en
+                           costeo-equipo.js): explica por qué el campo de arriba
+                           quedó bloqueado, en vez de dejar que alguien lo pise sin
+                           avisar por qué no puede escribir ahí. -->
+                      <p class="cst-equipo-salario-bloqueado-hint" id="cst-equipo-salario-bloqueado" hidden>Este talento ya tiene un salario asignado — no se puede cambiar desde aquí.</p>
+                      <label>
+                        <span>Costo/hora (COP)</span>
+                        <input type="number" id="cst-equipo-hourly-cost" min="0" step="1" required />
+                      </label>
+                      <p class="cst-valor-hora-hint" id="cst-equipo-valor-hora" hidden></p>
+                      <!-- Opcional (3 sep 2026, a pedido explícito): cada
+                           persona puede tener una carga distinta en el mismo
+                           proyecto (50h, 35h, 10h...) — con esto puesto, el
+                           costo planeado de esa persona sale solo y
+                           alimenta el indicador "Costo Planeado (Mano de
+                           Obra)" en Indicadores. -->
+                      <label>
+                        <span>Horas planeadas <span class="cst-field-hint">(opcional)</span></span>
+                        <input type="number" id="cst-equipo-horas-planeadas" min="0" step="0.5" placeholder="Ej. 50" />
+                      </label>
+                      <p class="cst-valor-hora-hint" id="cst-equipo-costo-planeado" hidden></p>
+                      <label><span>Centro de Costos</span><select id="cst-equipo-centro" required></select></label>
+                      <p class="emp-form-error" id="cst-equipo-error" hidden></p>
+                      <div class="cst-cc-edit-actions">
+                        <button type="button" class="cst-confirm-cancel" data-modal-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-primary">Agregar al equipo</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Filtro de la tabla de abajo — SEPARADO del formulario de
+                     alta de arriba (a pedido explícito: antes Talento/Cargo/
+                     Centro del formulario de alta hacían doble función de
+                     filtro, y elegir el Centro de Costos para dar de alta a
+                     alguien ocultaba de la tabla a todo el resto del equipo
+                     que no fuera de ese centro — confuso). Estos selects son
+                     independientes y solo filtran; no afectan qué se agrega. -->
+                <div class="cst-equipo-filtros" aria-label="Filtrar equipo del proyecto">
+                  <label class="filter"><span>Talento</span><select id="cst-equipo-filtro-talento"><option value="">Todos</option></select></label>
+                  <label class="filter"><span>Cargo</span><select id="cst-equipo-filtro-cargo"><option value="">Todos</option></select></label>
+                  <label class="filter"><span>Centro de Costos</span><select id="cst-equipo-filtro-centro"><option value="">Todos</option></select></label>
+                  <!-- Los inactivos se MUESTRAN por defecto (16 sep 2026, a
+                       pedido explicito): quien se inactiva tiene que seguir
+                       en la tabla, con su pastilla "Inactivo", para poder
+                       reactivarlo cuando vuelva. Antes se ocultaban — tambien
+                       a pedido explicito, para que quien salio de un proyecto
+                       no estorbara la vista — pero eso convertia inactivar en
+                       un viaje de ida: la persona desaparecia y ya no habia
+                       donde pulsar "Activar". El filtro se queda para poder
+                       ocultarlos si algun dia son demasiados. -->
+                  <label class="filter"><span>Inactivos</span>
+                    <select id="cst-equipo-filtro-inactivos">
+                      <option value="1" selected>Mostrar</option>
+                      <option value="">Ocultar</option>
+                    </select>
+                  </label>
+                </div>
+
+                <table class="emp-table" id="cst-equipo-table">
+                  <thead><tr><th>Talento</th><th>Cargo</th><th>Centro de Costos</th><th>Costo/hora</th><th>Horas planeadas</th><th>Costo planeado</th><th>Estado</th><th>Acción</th></tr></thead>
+                  <tbody id="cst-equipo-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Catálogo de Cargos -->
+          <!-- Solo el catálogo de nombres de cargo (crear/eliminar). La
+               tarifa es siempre individual, se define persona por persona en
+               Equipo del Proyecto — no existe una tarifa "estándar" por
+               cargo (28 ago 2026, a pedido explícito: no aportaba porque
+               cada persona ya cobra distinto). -->
+          <div class="cst-subpanel" id="cst-subpanel-tarifas-cargo" hidden>
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="etiqueta"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Roles del equipo</span>
+                  <h3>Catálogo de Cargos</h3>
+                </div>
+              </div>
+              <div class="cst-module-body">
+                <!-- Cualquier PM puede crear un cargo — el catálogo ya no es
+                     una lista fija (ver sql/23 y POST /tarifas-cargo). -->
+                <form class="cst-tc-nuevo-form" id="cst-form-nuevo-cargo">
+                  <div class="cst-tc-nuevo-icon" aria-hidden="true">+</div>
+                  <label><span>Nuevo cargo</span>
+                    <input type="text" id="cst-nuevo-cargo-nombre" placeholder="Ej. Tester, UX Designer…" maxlength="60" required />
+                  </label>
+                  <button type="submit" class="btn-primary cst-tc-nuevo-submit">Agregar cargo</button>
+                  <p class="emp-form-error" id="cst-nuevo-cargo-error" hidden></p>
+                </form>
+
+                <table class="emp-table" id="cst-tarifas-cargo-table">
+                  <thead>
+                    <tr>
+                      <th>Cargo</th>
+                      <th>Personas con este cargo</th>
+                      <th>Última edición</th>
+                      <!-- Se oculta entera para quien no puede eliminar (solo
+                           admin/ceo, ver renderTarifasCargoTable): una columna
+                           con el encabezado puesto y todas las celdas vacías
+                           parece un error de la pantalla. -->
+                      <th id="cst-tc-th-acciones">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cst-tarifas-cargo-tbody"></tbody>
+                </table>
+                <p class="emp-form-error" id="cst-tarifas-cargo-error" hidden></p>
+                <p class="cst-tc-msg-ok" id="cst-tarifas-cargo-ok" hidden></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Costo No Planeado -->
+          <div class="cst-subpanel" id="cst-subpanel-costo-no-planeado" hidden>
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="recibo"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Dinero fuera de plan</span>
+                  <h3>Gastos no planeados</h3>
+                </div>
+                <button type="button" class="cst-btn-new" data-modal-abrir="cst-gasto-modal-overlay">+ Solicitar gasto</button>
+              </div>
+              <div class="cst-module-body">
+                <div class="cst-confirm-overlay" id="cst-gasto-modal-overlay" data-modal hidden>
+                  <div class="cst-modal-box">
+                    <div class="cst-modal-head">
+                      <h4>Solicitar un gasto no planeado</h4>
+                      <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+                    </div>
+                    <p class="cst-modal-hint">
+                      Queda en <strong>Pendiente</strong> hasta que el CEO o el Administrador lo apruebe — solo el gasto aprobado suma al presupuesto ejecutado del proyecto.
+                    </p>
+                    <form class="cst-cc-edit-form cst-acceso-form" id="cst-form-gasto">
+                      <label><span>Descripción</span><input type="text" id="cst-gasto-desc" required /></label>
+                      <label><span>Monto (COP)</span><input type="number" id="cst-gasto-amount" min="0" step="1" required /></label>
+                      <label><span>Fecha</span><input type="date" id="cst-gasto-date" required /></label>
+                      <label>
+                        <span>Categoría</span>
+                        <select id="cst-gasto-category">
+                          <option value="licencia">Licencia</option>
+                          <option value="viatico">Viático</option>
+                          <option value="tercero">Tercero</option>
+                          <option value="capacitacion">Capacitación</option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </label>
+                      <label><span>Centro de Costos</span><select id="cst-gasto-centro" required></select></label>
+                      <p class="emp-form-error" id="cst-gasto-error" hidden></p>
+                      <div class="cst-cc-edit-actions">
+                        <button type="button" class="cst-confirm-cancel" data-modal-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-primary">Solicitar gasto</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <table class="emp-table" id="cst-gastos-table">
+                  <thead><tr><th>Centro de Costos</th><th>Descripción</th><th>Valor</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+                  <tbody id="cst-gastos-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Horas Extra -->
+          <div class="cst-subpanel" id="cst-subpanel-horas-extra" hidden>
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="cronometro"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Horas extra</span>
+                  <h3>Turnos registrados y su costo</h3>
+                </div>
+                <button type="button" class="cst-btn-new" id="cst-btn-nueva-overtime" data-modal-abrir="cst-overtime-modal-overlay">+ Agregar hora extra</button>
+              </div>
+              <div class="cst-module-body">
+                <!-- El sistema ya detecta horas extra solo a partir de las
+                     horas cargadas en Costeo (GET /overtime hace el cálculo
+                     en cada carga, sobre mp_costeo_task_facts) — esto es para
+                     cuando esas horas todavía no se han subido y el PM
+                     necesita registrar la hora extra a mano de una vez. -->
+                <div class="cst-confirm-overlay" id="cst-overtime-modal-overlay" data-modal hidden>
+                  <div class="cst-modal-box">
+                    <div class="cst-modal-head">
+                      <h4>Registrar una hora extra</h4>
+                      <button type="button" class="cst-modal-close" data-modal-cerrar aria-label="Cerrar">&times;</button>
+                    </div>
+                    <p class="cst-modal-hint">
+                      Solo hace falta cuando las horas todavía no se han subido desde Costeo: si ya están cargadas, el sistema detecta la hora extra solo.
+                    </p>
+                    <form class="cst-cc-edit-form cst-acceso-form" id="cst-form-overtime">
+                      <label><span>Centro de Costos</span><select id="cst-overtime-centro" required></select></label>
+                      <label><span>Talento</span><select id="cst-overtime-employee" required></select></label>
+                      <div class="cst-overtime-turno-field">
+                        <span class="cst-overtime-turno-label">Turno trabajado</span>
+                        <div class="cst-overtime-turno">
+                          <label class="cst-overtime-turno-punto">
+                            <span>Inicio</span>
+                            <input type="date" id="cst-overtime-inicio-fecha" required />
+                            <div class="cst-overtime-turno-hhmm">
+                              <select id="cst-overtime-inicio-hora" required></select>
+                              <select id="cst-overtime-inicio-min" required></select>
+                            </div>
+                          </label>
+                          <span class="cst-overtime-turno-arrow" aria-hidden="true">&rarr;</span>
+                          <label class="cst-overtime-turno-punto">
+                            <span>Fin</span>
+                            <input type="date" id="cst-overtime-fin-fecha" required />
+                            <div class="cst-overtime-turno-hhmm">
+                              <select id="cst-overtime-fin-hora" required></select>
+                              <select id="cst-overtime-fin-min" required></select>
+                            </div>
+                          </label>
+                        </div>
+                        <small class="cst-overtime-turno-hint">
+                          <strong id="cst-overtime-turno-preview">Elige inicio y fin del turno</strong>
+                          La cantidad de horas y su recargo (diurna, nocturna, festiva) los calcula el sistema.
+                        </small>
+                      </div>
+                      <p class="emp-form-error" id="cst-overtime-error" hidden></p>
+                      <div class="cst-cc-edit-actions">
+                        <button type="button" class="cst-confirm-cancel" id="cst-overtime-cancel" data-modal-cerrar>Cancelar</button>
+                        <button type="submit" class="btn-primary">Registrar hora extra</button>
+                      </div>
+                    </form>
+                    <!-- Mini-historial de la sesión (17 sep 2026, a pedido
+                         explícito): al registrar varias horas extra seguidas,
+                         el modal ya no se cierra con cada alta y acá se ve lo
+                         que se lleva registrado en esta página, con su botón
+                         Eliminar para corregir un error sin tener que salir. -->
+                    <section class="cst-overtime-sesion" id="cst-overtime-sesion" hidden>
+                      <h4 class="cst-overtime-sesion-title">Registrados en esta sesión</h4>
+                      <ul class="cst-overtime-sesion-list" id="cst-overtime-sesion-list"></ul>
+                    </section>
+                  </div>
+                </div>
+                <!-- Filtro de Talento propio de esta tabla (11 sep 2026, a
+                     pedido explícito): antes el recorte por persona se hacía
+                     con el "Recurso" de la barra global de arriba, lejos de la
+                     tabla que acotaba. Baja acá, justo encima de la columna
+                     Talento, igual que el de Equipo del Proyecto. -->
+                <div class="cst-equipo-filtros is-primero" aria-label="Filtrar horas extra">
+                  <label class="filter"><span>Talento</span><select id="cst-overtime-filtro-talento"><option value="">Todos</option></select></label>
+                </div>
+
+                <table class="emp-table" id="cst-overtime-table">
+                  <thead><tr><th>Talento</th><th>Proyecto</th><th>Semana</th><th>Fecha y turno</th><th>Tipo de hora</th><th>Extra</th><th>Costo</th></tr></thead>
+                  <tbody id="cst-overtime-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Historial de acciones (mp_costeo_audit_log) -->
+          <div class="cst-subpanel" id="cst-subpanel-historial" hidden>
+            <div class="cst-module-card">
+              <div class="cst-module-head">
+                <span class="cst-module-icon"><span class="cst-ico" data-ico="reloj"></span></span>
+                <div>
+                  <span class="cst-module-eyebrow">Historial</span>
+                  <h3>Acciones y transacciones</h3>
+                </div>
+              </div>
+              <div class="cst-module-body">
+                <nav class="cst-tabs" role="tablist" id="cst-historial-filtros">
+                  <button class="cst-tab is-active" data-tipo="">Todo</button>
+                  <button class="cst-tab" data-tipo="centro_costo">Centro de Costos</button>
+                  <button class="cst-tab" data-tipo="equipo">Equipo</button>
+                  <button class="cst-tab" data-tipo="gasto">Gastos</button>
+                  <button class="cst-tab" data-tipo="overtime">Horas Extra</button>
+                  <button class="cst-tab" data-tipo="plan_recursos">Plan de Recursos</button>
+                  <button class="cst-tab" data-tipo="tarifa_cargo">Catálogo de Cargos</button>
+                  <button class="cst-tab" data-tipo="acceso">Accesos</button>
+                  <button class="cst-tab" data-tipo="config">Configuración</button>
+                  <button class="cst-tab" data-tipo="snapshot">Snapshots</button>
+                </nav>
+                <table class="emp-table" id="cst-historial-table">
+                  <thead><tr><th>Fecha</th><th>Quién</th><th>Proyecto</th><th>Tipo</th><th>Acción</th><th>Detalle</th></tr></thead>
+                  <tbody id="cst-historial-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-pestaña: Configuración (umbrales de mp_costeo_config) -->
+          <div class="cst-subpanel" id="cst-subpanel-configuracion" hidden>
+            <div class="cst-module-head">
+              <span class="cst-module-icon"><span class="cst-ico" data-ico="engranaje"></span></span>
+              <div>
+                <span class="cst-module-eyebrow">Configuración</span>
+                <h3>Umbrales del módulo de Costeo</h3>
+              </div>
+            </div>
+            <div class="cst-config-grid" id="cst-config-grid"></div>
+
+            <!-- Fórmula de nómina de GTC (sql/33). No es HTML escrito a
+                 mano: lo pinta renderTablaRecargos() con lo que devuelve
+                 GET /config, o sea con los porcentajes de las tarjetas de
+                 arriba. Si alguien edita uno, esta tabla cambia con él —
+                 así lo que se ve en pantalla es siempre lo que el motor
+                 está aplicando de verdad. -->
+            <div class="cst-formula-nomina" id="cst-formula-nomina"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Notificaciones flotantes (reemplaza alert() nativo del navegador —
+       se ve como una alerta del sistema operativo, no como parte de la
+       app). Uso: cstToast('mensaje'). Se apilan si hay varias a la vez. -->
+  <div class="cst-toast-container" id="cst-toast-container" aria-live="polite"></div>
+
+  <!-- Modal de confirmación reutilizable (reemplaza confirm() nativo del navegador) -->
+  <div class="cst-confirm-overlay" id="cst-confirm-overlay" hidden>
+    <div class="cst-confirm-box" role="alertdialog" aria-modal="true">
+      <p class="cst-confirm-message" id="cst-confirm-message"></p>
+      <div class="cst-confirm-actions">
+        <button type="button" class="cst-confirm-cancel" id="cst-confirm-cancel">Cancelar</button>
+        <button type="button" class="cst-confirm-accept" id="cst-confirm-accept">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de rechazo de un gasto no planeado (sql/28): el motivo es
+       obligatorio, porque es lo unico que el PM va a ver para saber que
+       corregir. Mismo patron que el modal de horas extra. -->
+  <div class="cst-confirm-overlay" id="cst-gasto-rechazo-overlay" hidden>
+    <div class="cst-confirm-box cst-overtime-decision-box" role="alertdialog" aria-modal="true">
+      <p class="cst-confirm-message" id="cst-gasto-rechazo-title">¿Por qué se rechaza este gasto?</p>
+      <label class="cst-overtime-decision-field">
+        <span>Motivo (obligatorio)</span>
+        <textarea id="cst-gasto-rechazo-note" placeholder="Ej. no corresponde al proyecto, falta soporte…"></textarea>
+      </label>
+      <p class="emp-form-error" id="cst-gasto-rechazo-error" hidden></p>
+      <div class="cst-confirm-actions">
+        <button type="button" class="cst-confirm-cancel" id="cst-gasto-rechazo-cancel">Cancelar</button>
+        <button type="button" class="cst-confirm-accept" id="cst-gasto-rechazo-ok">Rechazar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/safe-html.js"></script>
+  <script src="/js/iconos.js"></script>
+  <script src="/js/sidebar.js"></script>
+  <!-- costeo.js se partio en estos 8 archivos (antes eran 2.752 lineas con
+       todos los paneles juntos). Son <script> clasicos: el ORDEN importa,
+       porque costeo-nav.js trae el DOMContentLoaded que arranca todo y
+       necesita que los demas ya esten cargados. -->
+  <script src="/js/costeo-core.js"></script>
+  <script src="/js/costeo-indicadores.js"></script>
+  <script src="/js/costeo-centros.js"></script>
+  <script src="/js/costeo-accesos.js"></script>
+  <script src="/js/costeo-equipo.js"></script>
+  <script src="/js/costeo-alertas.js"></script>
+  <!-- costeo-comercial.js va DESPUÉS de costeo-alertas.js: el Simulador
+       llama a loadAlertas() al crear un proyecto. -->
+  <script src="/js/costeo-comercial.js"></script>
+  <script src="/js/costeo-overtime.js"></script>
+  <script src="/js/costeo-nav.js"></script>
+</body>
+</html>

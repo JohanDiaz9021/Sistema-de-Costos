@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.git
+.gitignore
+*.log
+_qa_screenshots
+docs/manual-screenshots
+.sesiones
+.claude
