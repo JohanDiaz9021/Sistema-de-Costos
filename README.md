@@ -272,6 +272,3 @@ Para configurar los workflows, consulta [docs/n8n-workflows-guide.md](docs/n8n-w
 - [Parser de WF1](docs/n8n-wf1-parser.js)
 - [Guard de idempotencia](docs/n8n-idempotency-guard.js)
 
-## Licencia y uso
-
-Este proyecto es una herramienta interna de GTC. Su código, datos, credenciales y archivos operativos deben manejarse de acuerdo con las políticas internas de seguridad y confidencialidad de la organización.
