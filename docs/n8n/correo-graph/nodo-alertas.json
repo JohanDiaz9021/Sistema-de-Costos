@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.microsoft.com/v1.0/users/notificaciones@empresa.com/sendMail",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: $json.asunto, body: { contentType: 'HTML', content: $json.html }, toRecipients: String($json.destinatario).split(/[,;]/).map(s => s.trim()).filter(Boolean).map(a => ({ emailAddress: { address: a } })) } }) }}",
+        "options": {}
+      },
+      "name": "Enviar alertas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {}
+}

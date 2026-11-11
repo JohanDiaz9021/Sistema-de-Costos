@@ -1,0 +1,25 @@
+# Secretos / configuración local
+.env
+.env.*
+!.env.example
+
+# Dependencias
+node_modules/
+
+# Archivos temporales de Office
+~$*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sesiones guardadas en disco por el servidor (datos de usuarios logueados)
+.sesiones/
+
+# Configuración local de Claude Code
+.claude/
+
+# Documentos con datos reales de empleados/infraestructura (solo locales)
+docs/manual-screenshots/
+docs/manual-costos/
+docs/Modelo-de-datos-actualizado.pdf

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GTC — Dashboard de Planeación</title>
+<link rel="icon" type="image/png" href="/img/favicon.png" />
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="login-bg">
+  <main class="login-card" role="main">
+    <header class="login-header">
+      <img class="login-logo" src="/img/logo_gtc.png" alt="GTC Corporation" />
+      <p class="subtitle">Dashboard de Indicadores de Planeación</p>
+    </header>
+
+    <form id="login-form" novalidate>
+      <label class="field">
+        <span>Correo Corporativo o Usuario</span>
+        <input type="text" name="email" autocomplete="username" required autofocus />
+      </label>
+      <label class="field">
+        <span>Contraseña</span>
+        <input type="password" name="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit" class="btn-primary" id="login-btn">Entrar</button>
+      <p class="form-error" id="form-error" role="alert" aria-live="polite"></p>
+    </form>
+  </main>
+
+  <script src="/js/login.js"></script>
+</body>
+</html>

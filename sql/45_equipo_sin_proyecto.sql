@@ -1,0 +1,24 @@
+-- ============================================================
+--  Bloque 45 — Personas en Equipo del Proyecto SIN proyecto todavía
+-- ------------------------------------------------------------
+--  Pedido del usuario (16 oct 2026): un PM tiene que poder dar de alta a
+--  una persona —nueva en la empresa o ya existente— con su cargo y su
+--  salario aunque el proyecto al que va todavía no exista ("nos lo dan en
+--  3 días"), y asignárselo después desde Editar.
+--
+--  Mientras no tenga proyecto:
+--    - no suma costo a ningún lado: todos los cálculos de Costos van por
+--      cost_center_id, y NULL no cae en ningún centro;
+--    - la ven solo el PM que la agregó, el admin y el CEO (added_by);
+--    - genera la alerta "Persona sin proyecto" (src/queries/costo-alertas.js),
+--      que cuenta los días desde added_at y escala al CEO a los 6, igual que
+--      las demás alertas sin corregir.
+--
+--  La llave uk_equipo_centro_talento (sql/17) no protege a los NULL (MySQL
+--  trata cada NULL como distinto), así que "una sola fila sin proyecto por
+--  persona" la cuida la ruta (POST /equipo), no la base.
+--
+--  Idempotente: MODIFY se puede repetir sin consecuencias.
+-- ============================================================
+
+ALTER TABLE mp_equipo_proyecto MODIFY COLUMN cost_center_id INT NULL;

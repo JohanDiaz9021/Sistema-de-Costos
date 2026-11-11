@@ -1,0 +1,40 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Probar Graph (manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un solo correo, al propio buzon remitente: no le llega a nadie mas.\nreturn [{ json: {\n  subject: 'Prueba n8n: envio por Microsoft Graph',\n  body_html: '<p>Prueba del nodo HTTP Request de n8n con la credencial Graph - Notificaciones. No requiere accion.</p>',\n  recipient_email: 'notificaciones@empresa.com'\n} }];"
+      },
+      "name": "Correo de prueba",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.microsoft.com/v1.0/users/notificaciones@empresa.com/sendMail",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: $json.subject, body: { contentType: 'HTML', content: $json.body_html }, toRecipients: String($json.recipient_email).split(/[,;]/).map(s => s.trim()).filter(Boolean).map(a => ({ emailAddress: { address: a } })) } }) }}",
+        "options": {}
+      },
+      "name": "Enviar prueba (Graph)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 400]
+    }
+  ],
+  "connections": {
+    "Probar Graph (manual)": { "main": [[{ "node": "Correo de prueba", "type": "main", "index": 0 }]] },
+    "Correo de prueba": { "main": [[{ "node": "Enviar prueba (Graph)", "type": "main", "index": 0 }]] }
+  }
+}

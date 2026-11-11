@@ -1,0 +1,56 @@
+# ============================================================
+#  Base de datos DESECHABLE para las pruebas de integracion/e2e.
+# ------------------------------------------------------------
+#  No comparte nada con docker-compose.yml (el de la app real):
+#  otro contenedor, otro puerto y otro volumen. Aun asi, el .env
+#  de produccion NUNCA se lee desde las pruebas — test/helpers/db.js
+#  arma su propia configuracion apuntando aqui.
+#
+#  MariaDB 10.6 a proposito: es la version de stable.host donde corre
+#  el sistema (SELECT VERSION() -> 10.6.28-MariaDB). Probar contra
+#  MySQL 8 dejaria pasar diferencias reales — las migraciones usan
+#  `ADD COLUMN IF NOT EXISTS`, que es sintaxis exclusiva de MariaDB.
+#
+#  Uso:
+#    docker compose -f docker-compose.test.yml up -d
+#    npm run test:integration
+#    docker compose -f docker-compose.test.yml down -v
+# ============================================================
+
+# Proyecto propio, separado del de docker-compose.yml.
+#
+# Sin esto, compose deduce el nombre del proyecto de la carpeta y mete el
+# contenedor de pruebas en el MISMO grupo que gtc-dashboard (el de la app
+# real). Con los dos juntos, un `down -v` desde este archivo trata a
+# gtc-dashboard como contenedor huerfano. El nombre explicito los aisla.
+name: gtc-test
+
+services:
+  mariadb-test:
+    image: mariadb:10.6
+    container_name: gtc-mariadb-test
+    environment:
+      MARIADB_ROOT_PASSWORD: test
+      MARIADB_DATABASE: gtc_test
+      MARIADB_USER: gtc_test
+      MARIADB_PASSWORD: test
+    # 3399 en vez de 3306 para no chocar con un MySQL/MariaDB que ya
+    # este corriendo en la maquina del desarrollador.
+    ports:
+      - '3399:3306'
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      # Las pruebas crean y borran esquemas todo el tiempo; sin esto
+      # cada arranque tarda de mas por el flush a disco.
+      - --innodb-flush-log-at-trx-commit=2
+    # tmpfs: la base vive en RAM. Es desechable por definicion, va mas
+    # rapido, y garantiza que ningun dato de prueba sobreviva al `down`.
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s

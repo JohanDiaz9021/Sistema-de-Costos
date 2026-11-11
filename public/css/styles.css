@@ -1,0 +1,776 @@
+/* ===== Paleta corporativa GTC =====
+   Las cuatro familias de marca, cada una con sus 9 pasos del mas claro al
+   mas oscuro; el 500 es el PRINCIPAL de cada una. Son la unica fuente de
+   color de marca: todo lo de abajo (y las dos hojas del proyecto) sale de
+   aqui, asi que un cambio de marca se hace en este bloque y no buscando
+   hexadecimales sueltos por el resto del CSS.
+
+   Deep Blue es el primario: botones primarios, enlaces y estados activos.
+   Aqua acompana en acentos y elementos decorativos. Light Lime va con
+   moderacion, en acentos y fondos sutiles. Navy es el oscuro de la familia:
+   textos, fondos oscuros y contrastes fuertes. */
+:root {
+  /* Deep Blue - primario */
+  --deep-100: #BBB0D6;
+  --deep-200: #9B8AC2;
+  --deep-300: #6D54A6;
+  --deep-400: #513395;
+  --deep-500: #25007A;
+  --deep-600: #22006F;
+  --deep-700: #1A0057;
+  --deep-800: #140043;
+  --deep-900: #100033;
+
+  /* Aqua - secundario de apoyo */
+  --aqua-100: #C2F2EF;
+  --aqua-200: #A4EBE8;
+  --aqua-300: #7AE2DD;
+  --aqua-400: #61DDD6;
+  --aqua-500: #39D4CC;
+  --aqua-600: #34C1BA;
+  --aqua-700: #289791;
+  --aqua-800: #1F7570;
+  --aqua-900: #185956;
+
+  /* Light Lime - secundario complementario */
+  --lime-100: #D2FBE5;
+  --lime-200: #BCF9D8;
+  --lime-300: #9EF6C6;
+  --lime-400: #8BF5BB;
+  --lime-500: #6EF2AA;
+  --lime-600: #64DC9B;
+  --lime-700: #4EAC79;
+  --lime-800: #3D855E;
+  --lime-900: #37553B;
+
+  /* Navy - secundario oscuro */
+  --navy-100: #B9BCDC;
+  --navy-200: #979CCB;
+  --navy-300: #686FB3;
+  --navy-400: #4A53A4;
+  --navy-500: #1D288D;
+  --navy-600: #1A2480;
+  --navy-700: #151C64;
+  --navy-800: #10164E;
+  --navy-900: #0C113B;
+
+  /* --- Papeles (que hace cada color, no como se llama) ---
+     Los nombres --c-* son los de siempre: cada uno ya esta usado en cientos
+     de reglas de las dos hojas, asi que la paleta entra por aqui en vez de
+     renombrarlos uno por uno. */
+  /* El azul PRINCIPAL de la marca (#25007A) manda en todas las superficies e
+     interfaz: barra lateral, encabezados, titulos, botones y estados
+     activos. Navy queda para lo que debe leerse como casi-negro (el cuerpo
+     de texto, --c-text) y para oscurecer degradados y hovers. El nombre
+     --c-navy se conserva porque esta usado en ~80 reglas de las dos hojas;
+     lo que cambio es a que color apunta. */
+  --c-navy: var(--deep-500);
+  --c-navy-deep: var(--deep-800);
+  --c-teal: var(--aqua-500);
+  /* Aqua no sirve para texto en sus pasos claros: el 500 sobre blanco da
+     1.8:1 y el 700, 3.5:1 — los dos por debajo del 4.5:1 que pide AA. El 800
+     llega a 5.5:1, y es el que va en letra, iconos, bordes finos y tambien
+     como RELLENO con texto blanco encima (el contraste es el mismo en los
+     dos sentidos). El 500 se queda para rellenos decorativos y acentos. */
+  --c-teal-ink: var(--aqua-800);
+  --c-teal-btn: var(--aqua-800);
+  --c-teal-btn-hover: var(--aqua-900);
+  --c-blue-mid: var(--deep-500);
+  --c-blue-light: var(--deep-200);
+  --c-purple: var(--deep-300);
+  --c-lime-ink: var(--lime-800);
+
+  /* Amarillo y rojo NO son de la paleta de marca a proposito: son estados
+     (pendiente / critico), no identidad. Cambiarlos por un color de marca
+     dejaria "aprobado", "pendiente" y "rechazado" del mismo color, que es
+     justo lo que esos avisos tienen que distinguir. */
+  --c-yellow: #FFC107;
+  --c-red: #E53935;
+
+  --c-grey-bg: #F3F4FA;
+
+  /* Tintes derivados: los mismos colores de marca muy rebajados sobre
+     blanco, para fondos de aviso, filas alternas, bordes finos y lineas de
+     eje. Viven aqui y no sueltos por el CSS para que se muevan junto con la
+     familia de la que salen. */
+  --tint-deep: #EDE9F7;        /* Deep 500 al ~8% */
+  --tint-deep-soft: #F4F1FB;   /* Deep 500 al ~4% */
+  --tint-deep-line: #D9D2EE;   /* borde sobre --tint-deep */
+  --tint-navy: #EDEEF7;        /* Navy 500 al ~8% */
+  --tint-navy-soft: #FAFAFD;
+  --tint-navy-line: #E3E4F2;
+  --tint-aqua: #E3F8F6;        /* Aqua 500 al ~12% */
+  --tint-lime: #E7FCF1;        /* Lime 500 al ~12% */
+  --c-muted-soft: #9AA0C4;     /* texto de apoyo sobre fondo claro (decorativo) */
+  /* LA LETRA VA EN NEGRO (a pedido explicito, 11 sep 2026). El azul
+     principal se queda para superficies, bordes y estados activos; los
+     titulos, cifras y etiquetas que antes heredaban ese azul pasan a
+     --c-ink. Texto sobre fondo oscuro sigue siendo blanco, marcado con
+     color:#fff en cada regla. */
+  --c-ink: #000000;
+  --c-text: var(--c-ink);
+  /* Gris neutro, sin tinte de marca: al lado de una letra negra, un gris
+     azulado se lee como "otro color", no como texto secundario. */
+  --c-muted: #565656;
+  --c-border: #DCDCEA;
+  --c-card-bg: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgba(12, 17, 59, .07);
+  --shadow-md: 0 4px 14px rgba(12, 17, 59, .12);
+  /* Elevación para tarjetas interactivas al pasar el mouse (31 ago 2026,
+     modernización visual) — un escalón más de profundidad que --shadow-md,
+     para que la tarjeta se sienta "levantada" sin cambiar de color. */
+  --shadow-lift: 0 10px 24px rgba(12, 17, 59, .16);
+  --radius: 10px;
+  /* Radio más grande que --radius, para tarjetas grandes (resumen, módulo,
+     proyecto) — el look "moderno" pide esquinas más redondeadas que los
+     10px que ya usan controles pequeños (inputs, badges), que se quedan
+     como estaban. */
+  --radius-lg: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--c-text);
+  background: var(--c-grey-bg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+code { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12px; }
+
+/* ===== Login ===== */
+.login-bg {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--c-navy) 0%, var(--deep-800) 100%);
+}
+.login-card {
+  width: min(420px, 92vw);
+  background: #fff;
+  border-radius: 14px;
+  padding: 36px 32px 28px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.25);
+}
+.login-header { text-align: center; margin-bottom: 24px; }
+.login-header h1 { font-size: 32px; color: var(--c-ink); letter-spacing: 1px; margin-top: 8px; }
+.login-header .subtitle { color: var(--c-muted); margin: 10px 0 0; font-size: 13px; }
+.login-logo {
+  display: block;
+  width: 130px;
+  height: auto;
+  margin: 0 auto 4px;
+}
+.brand-dot {
+  width: 44px; height: 44px; border-radius: 12px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, var(--c-teal) 0%, var(--c-navy) 100%);
+  box-shadow: var(--shadow-md);
+}
+.brand-logo {
+  height: 36px;
+  width: auto;
+  display: block;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 3px 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+
+.field { display: block; margin-bottom: 14px; }
+.field > span { display: block; font-size: 12px; color: var(--c-muted); margin-bottom: 4px; }
+.field > input {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--c-border); border-radius: 8px;
+  font-size: 14px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field > input:focus { border-color: var(--c-teal); box-shadow: 0 0 0 3px rgba(57, 212, 204,.18); }
+
+/* Deep Blue, no Navy: la paleta reserva el primario para "botones
+   primarios, enlaces y estados activos", y Navy para textos y fondos
+   oscuros. Antes este boton era del mismo color que los encabezados. */
+.btn-primary {
+  width: 100%; padding: 11px 14px;
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--c-blue-mid); color: #fff; font-weight: 600;
+  font-size: 14px;
+  transition: background .15s, transform .05s, box-shadow .15s;
+}
+.btn-primary:hover { background: var(--deep-700); box-shadow: var(--shadow-md); }
+.btn-primary:active { transform: translateY(1px); box-shadow: none; }
+.btn-primary:disabled { background: var(--deep-200); cursor: progress; box-shadow: none; }
+
+.btn-ghost {
+  background: transparent; border: 1px solid var(--c-border);
+  padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  color: var(--c-text); font-size: 13px;
+  transition: background .15s, border-color .15s, transform .05s;
+}
+.btn-ghost:hover { background: var(--tint-navy); border-color: var(--navy-100); }
+.btn-ghost:active { transform: translateY(1px); }
+
+/* Estado "cargando" genérico para cualquier botón (withBusy() en sidebar.js).
+   Spinner antes del texto + cursor de espera; el disabled ya lo pone JS. */
+.is-busy { position: relative; cursor: progress !important; padding-left: 30px !important; }
+.is-busy::before {
+  content: ''; position: absolute; left: 10px; top: 50%;
+  width: 13px; height: 13px; margin-top: -6.5px;
+  border: 2px solid rgba(255,255,255,.45); border-top-color: #fff;
+  border-radius: 50%; animation: btn-spin .7s linear infinite;
+}
+.btn-ghost.is-busy::before { border-color: rgba(0,0,0,.2); border-top-color: var(--c-navy); }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .is-busy::before { animation: none; }
+}
+
+.form-error { color: var(--c-red); font-size: 13px; min-height: 18px; margin: 10px 0 0; text-align: center; }
+
+/* ===== Topbar ===== */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--c-navy); color: #fff;
+  box-shadow: var(--shadow-md);
+  position: sticky; top: 0; z-index: 20;
+}
+.topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-title { font-size: 16px; font-weight: 500; opacity: .92; }
+.snapshot-pill, .user-pill {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18);
+}
+.user-pill { color: #fff; }
+.topbar-right .btn-ghost { color: #fff; border-color: rgba(255,255,255,.25); background: transparent; }
+.topbar-right .btn-ghost:hover { background: rgba(255,255,255,.1); }
+
+/* ===== Menú "PDF envío semanal": Datos vs. Gráficos ===== */
+.export-menu-wrap { position: relative; }
+.export-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 280px;
+  background: #fff; color: var(--c-ink);
+  border: 1px solid var(--c-border); border-radius: 10px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,.18));
+  padding: 6px; z-index: 30;
+}
+.export-menu-item {
+  width: 100%; display: flex; align-items: flex-start; gap: 10px;
+  background: none; border: 0; border-radius: 8px;
+  padding: 9px 10px; text-align: left; cursor: pointer;
+}
+.export-menu-item:hover { background: var(--c-grey-bg, var(--c-grey-bg)); }
+.export-menu-icon { font-size: 18px; line-height: 1.3; }
+.export-menu-item strong { display: block; font-size: 13px; color: var(--c-ink); }
+.export-menu-item small { display: block; font-size: 11.5px; color: var(--c-muted); margin-top: 1px; }
+
+/* ===== Filters bar ===== */
+.filters-bar {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  padding: 12px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--c-border);
+  position: sticky; top: 50px; z-index: 19;
+}
+.filter { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
+.filter > span { font-size: 11px; text-transform: uppercase; color: var(--c-muted); letter-spacing: .4px; }
+.filter > select {
+  padding: 6px 8px; border-radius: 6px; border: 1px solid var(--c-border);
+  background: #fff; font-size: 13px; min-width: 140px;
+}
+.filter > select:focus { outline: 2px solid rgba(57, 212, 204,.45); }
+.filters-bar > .btn-ghost { align-self: flex-end; }
+
+/* ===== Banner de advertencia de filtros incoherentes ===== */
+.scope-warn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  background: #fff8d6;
+  border-bottom: 1px solid #f0d264;
+  color: #5a4500;
+  font-size: 13px;
+  position: sticky; top: 130px; z-index: 18;
+}
+.scope-warn-icon { font-size: 16px; line-height: 1; }
+.scope-warn-msg { flex: 1; }
+.scope-warn-btn {
+  background: #fff; border-color: #d6b833; color: #5a4500;
+  padding: 4px 10px; font-size: 12px;
+}
+.scope-warn-btn:hover { background: #fff3cd; }
+
+/* ===== Grid de indicadores ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px;
+  padding: 16px 18px 40px;
+}
+.card {
+  grid-column: span 4;
+  background: var(--c-card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 240px;
+}
+.card.wide { grid-column: span 8; }
+.card.full { grid-column: span 12; }
+.card.tall { grid-row: span 2; }
+.card > header {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.card > header h2 {
+  font-size: 13px; color: var(--c-ink); flex: 1 0 60%; line-height: 1.25;
+  min-height: 32px;
+}
+.card .chart { flex: 1; min-height: 180px; }
+.card .chart.placeholder {
+  display: grid; place-items: center;
+  color: var(--c-muted); font-style: italic;
+  background: repeating-linear-gradient(45deg, var(--tint-navy-soft), var(--tint-navy-soft) 8px, var(--c-grey-bg) 8px, var(--c-grey-bg) 16px);
+  border-radius: 6px;
+}
+
+@media (max-width: 1200px) {
+  .card { grid-column: span 6; }
+  .card.wide { grid-column: span 12; }
+}
+@media (max-width: 720px) {
+  .card, .card.wide { grid-column: span 12; }
+  .topbar-title { display: none; }
+}
+
+/* ===== Badges de predominancia ===== */
+.badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .6px;
+  padding: 3px 7px; border-radius: 999px; color: #fff;
+  text-transform: uppercase;
+}
+.badge-daily   { background: var(--c-blue-mid); }
+.badge-weekly  { background: var(--c-yellow); color: #4a3a00; }
+.badge-monthly { background: var(--c-purple); }
+/* Indicadores semanales que se RECALCULAN cada día (semáforo, vencidas,
+   indicador general por recurso, etc.). El badge es bicolor para dejar
+   claro que la naturaleza es semanal pero la frescura es diaria. */
+/* Dos mitades de verdad, no un degradado con UNA sola tinta: asi era antes y
+   el texto oscuro (legible sobre el amarillo) quedaba casi invisible sobre el
+   azul de la mitad "Diario" (11 sep 2026, reportado por el usuario). Ahora
+   cada mitad lleva su fondo y su color de letra: oscuro sobre amarillo,
+   blanco sobre azul — el mismo blanco que usa .badge-daily cuando el
+   indicador es solo diario. */
+.badge-weekly-daily {
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  letter-spacing: .4px;
+}
+
+.badge-weekly-daily > span { padding: 3px 9px; display: inline-flex; align-items: center; }
+.badge-weekly-daily > span:first-child { background: var(--c-yellow); color: #4a3a00; }
+.badge-weekly-daily > span:last-child { background: var(--c-blue-mid); color: #fff; }
+
+/* Ícono de info */
+.info {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--c-border); background: #fff;
+  color: var(--c-muted); cursor: pointer; font-style: italic; font-weight: 700;
+  font-family: Georgia, serif;
+  line-height: 1; padding: 0;
+}
+.info:hover { color: var(--c-ink); border-color: var(--c-navy); }
+.info:focus-visible { outline: 2px solid var(--c-teal); }
+.expand {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--c-border); background: #fff;
+  color: var(--c-muted); cursor: pointer; font-weight: 700;
+  font-size: 14px; line-height: 1; padding: 0;
+}
+.expand:hover { color: var(--c-ink); border-color: var(--c-navy); }
+.expand:focus-visible { outline: 2px solid var(--c-teal); }
+
+/* ===== Tooltip popover ===== */
+.tooltip-popover {
+  position: absolute; z-index: 50;
+  width: min(420px, 94vw);
+  background: #fff; color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 80vh; overflow: auto;
+}
+.tooltip-popover h4 { margin: 0 0 6px; color: var(--c-ink); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.tooltip-popover .warn { display: block; margin-top: 8px; padding: 8px 10px; background: #fff7d9; border-left: 3px solid var(--c-yellow); border-radius: 4px; color: #5a4500; }
+.tooltip-popover .tip-formula-label {
+  font-size: 10px; font-weight: 700; color: var(--c-muted); letter-spacing: .5px;
+  margin: 10px 0 4px;
+}
+.tooltip-popover .tip-formula {
+  margin: 0; padding: 10px 12px;
+  background: var(--tint-deep-soft); border: 1px solid #DCDCEA; border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 12px; color: var(--c-ink);
+  white-space: pre-wrap; line-height: 1.45;
+  overflow-x: auto;
+}
+
+/* ===== Semáforo ===== */
+.sem-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -2px; }
+.sem-green { background: var(--c-teal); }
+.sem-amber { background: var(--c-yellow); }
+.sem-red   { background: var(--c-red); }
+
+/* ===== Modal de drilldown ===== */
+.modal {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(12, 17, 59, .55);
+  display: grid; place-items: center;
+  padding: 20px;
+}
+.modal[hidden] { display: none; }
+.modal-card {
+  background: #fff; border-radius: 12px;
+  width: min(880px, 96vw); max-height: 86vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 30px 60px rgba(0,0,0,.30);
+}
+.modal-card > header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--c-border);
+}
+.modal-card > header h3 { font-size: 15px; color: var(--c-ink); }
+.modal-close {
+  background: transparent; border: 0; font-size: 22px; color: var(--c-muted);
+  cursor: pointer; line-height: 1; padding: 0 6px;
+}
+.modal-close:hover { color: var(--c-text); }
+.modal-body { padding: 14px 16px; overflow: auto; }
+.expanded-chart { width: 100%; height: 65vh; min-height: 360px; }
+.expanded-content { width: 100%; }
+
+/* ===== CRUD empleados (admin) ===== */
+.emp-manager { display: flex; flex-direction: column; gap: 14px; }
+.emp-toolbar { display: flex; gap: 10px; align-items: center; }
+.emp-toolbar input[type="search"] { flex: 1; padding: 7px 10px; border: 1px solid var(--c-border); border-radius: 6px; font-size: 13px; }
+.emp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.emp-table th, .emp-table td { padding: 10px; border-bottom: 1px solid var(--c-border); text-align: left; vertical-align: top; }
+.emp-table th { background: var(--tint-navy-soft); color: var(--c-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+/* Zebra + resalte al pasar el mouse — antes cada tabla lo replicaba a mano
+   con su propio selector (ver .cst-equipo-zebra, .cst-comp-table); ahora es
+   el comportamiento por defecto de CUALQUIER tabla .emp-table, y esas
+   reglas más específicas (mayor especificidad) siguen ganando donde ya
+   existían para no romper nada. */
+.emp-table tbody tr { transition: background .1s ease; }
+.emp-table tbody tr:nth-child(even) { background: var(--tint-navy-soft); }
+.emp-table tbody tr:hover { background: rgba(57, 212, 204, .07); }
+.emp-table tr.emp-inactive { opacity: .55; }
+.emp-actions { display: flex; gap: 6px; white-space: nowrap; }
+.emp-actions button { font-size: 11px; padding: 4px 10px; border: 1px solid var(--c-border); background: #fff; border-radius: 5px; cursor: pointer; }
+.emp-actions button:hover { background: var(--c-navy); color: #fff; border-color: var(--c-navy); }
+.emp-actions .emp-danger:hover { background: var(--c-red, #E53935); border-color: var(--c-red, #E53935); }
+.emp-muted { color: var(--c-muted); font-style: italic; }
+.btn-primary { background: var(--c-navy); color: #fff; border: 0; padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.btn-primary:hover { background: var(--deep-700); }
+.emp-form { background: var(--tint-navy-soft); border: 1px solid var(--c-border); border-radius: 8px; padding: 14px; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.emp-form h4 { font-size: 14px; color: var(--c-ink); margin: 0 0 4px; }
+.emp-form label { display: flex; flex-direction: column; font-size: 12px; color: var(--c-muted); gap: 4px; }
+.emp-form label.emp-check { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; color: var(--c-text); }
+.emp-form input[type="text"], .emp-form input[type="email"] { padding: 7px 10px; border: 1px solid var(--c-border); border-radius: 6px; font-size: 13px; color: var(--c-text); }
+.emp-form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.emp-form-actions button:not(.btn-primary) { background: #fff; border: 1px solid var(--c-border); padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.emp-form-error { background: #fde9e7; color: #862019; padding: 8px 12px; border-radius: 6px; font-size: 12px; }
+.emp-error { color: #862019; padding: 12px; }
+
+/* ===== KPI cards (numericos grandes) ===== */
+.kpi {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; border-radius: 8px; padding: 14px; text-align: center;
+}
+.kpi-good  { background: var(--tint-aqua); color: var(--aqua-800); }
+.kpi-bad   { background: #fdecea; color: #842821; }
+.kpi-amber { background: #fff7d9; color: #5a4500; }
+.kpi-value { font-size: 44px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.kpi-label { font-size: 12px; color: inherit; opacity: .8; }
+.kpi-drill {
+  margin-top: 6px; padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  background: var(--c-navy); color: #fff; border: 0; font-size: 12px;
+}
+.kpi-drill:hover { background: var(--navy-900); }
+
+/* ===== Semaforo de gestion ===== */
+.sem-block { display: flex; flex-direction: column; gap: 6px; }
+.sem-row-main { display: flex; gap: 12px; align-items: center; padding: 6px 0 10px; border-bottom: 1px solid var(--c-border); }
+.sem-bigdot { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 3px rgba(0,0,0,.06); }
+.sem-title { font-weight: 600; color: var(--c-ink); }
+.sem-sub   { font-size: 12px; color: var(--c-muted); }
+.sem-label { font-size: 11px; font-weight: 700; letter-spacing: .6px; margin-top: 2px; }
+.sem-label-green { color: var(--c-teal-ink); }
+.sem-label-amber { color: #b88800; }
+.sem-label-red   { color: var(--c-red); }
+.sem-label-grey  { color: var(--c-muted); }
+.sem-block-title { font-size: 11px; text-transform: uppercase; color: var(--c-muted); letter-spacing: .4px; margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.sem-see-all { background: transparent; border: 1px solid var(--c-border); color: var(--c-ink); font-size: 10px; padding: 2px 8px; border-radius: 999px; cursor: pointer; text-transform: none; letter-spacing: 0; margin-left: auto; }
+.sem-see-all:hover { background: var(--c-navy); color: #fff; }
+.sem-list { list-style: none; margin: 4px 0; padding: 0; font-size: 12px; max-height: 110px; overflow: auto; }
+.sem-list li { padding: 2px 0; display: flex; align-items: center; }
+.sem-muted { color: var(--c-muted); font-size: 11px; margin-left: auto; }
+.sem-tasks { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; }
+.sem-tasks > span { display: inline-flex; align-items: center; }
+
+/* Tamanos de los dots por defecto */
+.sem-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -2px; display: inline-block; }
+.sem-green { background: var(--c-teal); }
+.sem-amber { background: var(--c-yellow); }
+.sem-red   { background: var(--c-red); }
+
+/* ===== Pildoras y errores ===== */
+.pill-warn {
+  display: inline-block; background: #fff3cd; color: #5a4500;
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.pill-ok {
+  display: inline-block; background: var(--aqua-100); color: var(--aqua-800);
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.err { color: var(--c-red); font-size: 12px; margin: 8px 0; }
+
+/* ===== Empty state (cuando una card no tiene datos) ===== */
+.empty-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 8px; padding: 18px;
+  color: var(--c-muted);
+}
+.empty-state-icon {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--aqua-100); color: var(--c-teal-ink);
+  display: grid; place-items: center;
+  font-size: 30px; font-weight: 700;
+}
+.empty-state-icon .cst-ico { width: 30px; height: 30px; vertical-align: 0; }
+.empty-state-title { font-size: 14px; font-weight: 600; color: var(--c-ink); margin-top: 4px; }
+.empty-state-sub { font-size: 12px; line-height: 1.5; max-width: 320px; }
+
+/* ===== Indicador #7 — lista compañera con ratio por proyecto ===== */
+.top-projects {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tint-navy);
+}
+.top-projects-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--c-muted); margin-bottom: 6px;
+}
+.top-projects-list { list-style: none; margin: 0; padding: 0; }
+.top-projects-list li {
+  display: grid;
+  grid-template-columns: 100px 1fr 42px;
+  gap: 8px; align-items: center;
+  font-size: 12px; padding: 3px 0;
+}
+.top-projects-list .tp-name {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--c-ink);
+}
+.top-projects-list .tp-bar {
+  background: var(--tint-navy); height: 8px; border-radius: 4px;
+  position: relative; overflow: hidden;
+}
+.top-projects-list .tp-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--c-teal);
+}
+.top-projects-list li.under .tp-bar-fill { background: var(--c-red); }
+.top-projects-list li.ok    .tp-bar-fill { background: var(--c-yellow); }
+.top-projects-list li.over  .tp-bar-fill { background: var(--c-teal); }
+.top-projects-list .tp-pct {
+  text-align: right; font-weight: 700; color: var(--c-ink);
+}
+
+/* ===== KPI compacto + lista de motivos (indicador #12) ===== */
+.kpi-compact {
+  display: flex; align-items: center; justify-content: space-between;
+  border-radius: 8px; padding: 10px 12px; gap: 10px;
+}
+.kpi-compact .kpi-value-sm { font-size: 26px; font-weight: 800; line-height: 1; }
+.kpi-compact .kpi-label-sm { font-size: 11px; opacity: .8; margin-top: 2px; }
+.reasons-list { flex: 1; margin-top: 8px; overflow: hidden; }
+.reasons-list .reasons-title { font-size: 11px; text-transform: uppercase; color: var(--c-muted); letter-spacing: .4px; margin-bottom: 4px; }
+.reasons-list ul { list-style: none; padding: 0; margin: 0; }
+.reasons-list li {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: 6px; font-size: 11px; padding: 3px 0; position: relative;
+}
+.reasons-list .reason-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; background: #fff3cd;
+  border-radius: 4px; z-index: 0;
+}
+.reasons-list .reason-txt, .reasons-list .reason-count {
+  position: relative; z-index: 1; padding: 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.reasons-list .reason-count { font-weight: 600; color: #5a4500; }
+
+/* ===== Tablas ===== */
+table.dt {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+table.dt th, table.dt td {
+  padding: 6px 8px; border-bottom: 1px solid var(--tint-navy); text-align: left; vertical-align: top;
+}
+table.dt thead th { background: var(--c-grey-bg); color: var(--c-ink); font-weight: 600; }
+table.dt tbody tr:nth-child(even) { background: var(--tint-navy-soft); }
+
+/* Header con icono "?" para tooltip nativo (title attr) */
+.th-with-tip {
+  display: inline-flex; align-items: center; gap: 4px;
+  cursor: help;
+}
+.th-tip-mark {
+  display: inline-grid; place-items: center;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--c-blue-mid); color: #fff;
+  font-size: 10px; font-weight: 700; font-style: italic; font-family: Georgia, serif;
+  line-height: 1;
+}
+
+/* ===== Panel de errores de ingesta (admin/CEO) ===== */
+.val-manager { display: flex; flex-direction: column; gap: 12px; }
+.val-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.val-toolbar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--c-muted); }
+.val-toolbar select { padding: 4px 6px; }
+.val-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--c-ink); margin-bottom: 10px; }
+.val-chip { background: var(--c-grey-bg); border: 1px solid #DCDCEA; border-radius: 12px; padding: 2px 8px; font-size: 11px; }
+.val-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.val-table th { text-align: left; background: var(--tint-deep-soft); padding: 6px 8px; border-bottom: 1px solid #DCDCEA; color: var(--c-ink); }
+.val-table td { padding: 6px 8px; border-bottom: 1px solid var(--c-grey-bg); vertical-align: top; }
+.val-row-ack { opacity: 0.55; }
+.val-file { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; word-break: break-all; max-width: 220px; }
+.val-week { text-align: center; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-weight: 600; color: #555; width: 48px; }
+.val-msg { max-width: 320px; color: #444; }
+.val-ack-by { font-size: 11px; color: var(--lime-800); }
+.val-empty { color: var(--c-muted); padding: 20px; text-align: center; }
+.val-error { color: #c62828; padding: 12px; background: #fff5f5; border-radius: 6px; }
+
+/* Badge de tipo de contrato — Prestación de servicios */
+.emp-pill-ps {
+  display: inline-block;
+  font-size: 9px; font-weight: 700; letter-spacing: .6px;
+  padding: 1px 6px; border-radius: 4px;
+  background: var(--deep-300); color: #fff;
+  vertical-align: middle;
+}
+.emp-hint { display: block; font-size: 11px; color: var(--c-muted); margin-top: 2px; font-style: italic; }
+
+/* Indicador #17 — resumen de auditoría */
+.aud-summary { display: flex; gap: 16px; padding: 6px 0 8px; font-size: 13px; color: var(--c-ink); border-bottom: 1px solid var(--c-border); margin-bottom: 8px; }
+.aud-summary span { padding: 2px 8px; background: #fff8d6; border-radius: 12px; }
+.kpi-good-msg { color: var(--lime-800); padding: 16px; text-align: center; font-size: 13px; }
+
+/* ===== Indicador #18 — Reconocimientos (podium) ===== */
+.reco-podium { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 14px; align-items: end; padding: 6px 0; }
+.reco-card {
+  background: #fff; border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 14px 12px 12px; text-align: center;
+  display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
+}
+.reco-pos-1 { border-color: #d4a017; background: linear-gradient(180deg, #fff8d6 0%, #fff 80%); transform: translateY(-6px); }
+.reco-pos-2 { border-color: var(--navy-200); background: linear-gradient(180deg, var(--c-grey-bg) 0%, #fff 80%); }
+.reco-pos-3 { border-color: #c4836a; background: linear-gradient(180deg, #fbe3d9 0%, #fff 80%); }
+/* Antes era un emoji de medalla a 34px; ahora es el trofeo (primer puesto)
+   o el numero de posicion. */
+.reco-medal { font-size: 26px; font-weight: 800; line-height: 1; color: var(--c-blue-mid); }
+.reco-medal .cst-ico { width: 32px; height: 32px; vertical-align: 0; color: var(--c-yellow); }
+.reco-name  { font-size: 14px; font-weight: 700; color: var(--c-ink); }
+.reco-score { font-size: 11px; color: var(--c-muted); font-weight: 600; letter-spacing: .4px; }
+.reco-stats { display: flex; justify-content: center; gap: 12px; font-size: 11px; color: var(--c-muted); }
+.reco-stats b { color: var(--c-ink); font-size: 13px; }
+.reco-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 22px; }
+.reco-badge {
+  font-size: 10px; padding: 2px 6px; border-radius: 10px;
+  background: var(--tint-deep-soft); border: 1px solid var(--deep-100); color: var(--deep-500);
+}
+.reco-drill {
+  background: var(--c-navy); color: #fff; border: 0; padding: 5px 10px;
+  border-radius: 6px; cursor: pointer; font-size: 11px; margin-top: 4px;
+}
+.reco-drill:hover { background: var(--navy-900); }
+
+.reco-mentions { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--c-border); }
+.reco-mentions h4 { font-size: 12px; color: var(--c-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+.reco-mentions ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.reco-mentions li { font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.reco-mention-stats { color: var(--c-muted); }
+.reco-mention-badges { color: var(--c-ink); font-size: 11px; }
+
+.reco-foot { font-size: 11px; color: var(--c-muted); text-align: right; margin-top: 8px; }
+.reco-empty { color: var(--c-muted); text-align: center; padding: 18px; font-style: italic; }
+
+@media (max-width: 900px) {
+  .reco-podium { grid-template-columns: 1fr; }
+  .reco-pos-1 { transform: none; }
+}
+
+/* Pills de severidad en el panel de errores */
+.val-sev { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: .4px; text-transform: uppercase; }
+.val-sev-critical { background: #ffe5e5; color: #b71c1c; }
+.val-sev-warning  { background: #fff4d6; color: #8a5a00; }
+.val-sev-info     { background: var(--tint-deep); color: var(--deep-700); }
+.val-table-wrap { max-height: 60vh; overflow-y: auto; }
+
+/* Fila marcada como falso positivo: se ve atenuada con tachado para
+   recordar visualmente que ya no aplica. */
+.val-row-reverted { opacity: 0.55; }
+.val-row-reverted td:not(.val-actions) { text-decoration: line-through; }
+.val-fp-tag {
+  display: inline-block; padding: 2px 8px; margin-left: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  background: var(--tint-deep-soft); color: var(--deep-500); border-radius: 4px;
+}
+.val-actions { white-space: nowrap; }
+.val-actions button { font-size: 11px; padding: 3px 8px; margin-left: 4px; }
+.val-btn-fp { background: var(--tint-deep-soft); color: var(--deep-700); border: 1px solid var(--deep-100); }
+.val-btn-fp:hover { background: var(--deep-100); }
+
+/* Indicador #16 - heatmap necesita mucho más alto para los 21 recursos */
+.card[data-ind="16"] { min-height: 540px; }
+.card[data-ind="16"] .chart { min-height: 480px; }
+
+/* Indicador #14 - carga horizontal apilada: también necesita altura para que
+   se vean TODOS los recursos del mes (no solo los primeros ~8). Mismo criterio
+   que el heatmap #16, así ambos comparten "universo" visual coherente. */
+.card[data-ind="14"] { min-height: 540px; }
+.card[data-ind="14"] .chart { min-height: 480px; }
+
+/* Indicador #17 - tabla de auditoría con muchas columnas (Recurso, Sem, Proyecto,
+   Actividad, Estado, fechas, días, observación). Damos espacio horizontal generoso
+   y centramos el contenido. */
+.card[data-ind="17"] .chart { overflow-x: auto; }
+.card[data-ind="17"] .aud-summary {
+  display: flex; justify-content: center; gap: 32px;
+  margin: 8px 0 14px 0; flex-wrap: wrap;
+}
+.card[data-ind="17"] .aud-summary span { font-size: 14px; color: #444; }
+.card[data-ind="17"] .aud-summary b { font-size: 18px; color: var(--c-navy, var(--navy-800)); margin-right: 4px; }
+.card[data-ind="17"] .dt { margin: 0 auto; }
+.card[data-ind="17"] .dt th { text-align: center; }
+.card[data-ind="17"] .dt td { text-align: center; vertical-align: middle; }
+.card[data-ind="17"] .dt td:nth-child(4),  /* Actividad */
+.card[data-ind="17"] .dt td:nth-child(9) { /* Observación */
+  text-align: left; max-width: 260px;
+  white-space: normal; word-wrap: break-word;
+}
